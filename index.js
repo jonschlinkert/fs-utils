@@ -63,14 +63,15 @@ file.lastSegment = function() {
   return filepath.split('/').pop();
 };
 
-// Set the CWD
+// Normalized path to the CWD
+// @example: file.cwd('foo')
 file.cwd = function() {
   var filepath = path.join.apply(null, arguments);
   return file.normalizeSlash(path.join(cwd, filepath));
 };
 
 // Change the current working directory (CWD)
-file.setCWD = function() {
+file.changeCWD = function() {
   var filepath = path.join.apply(null, arguments);
   process.chdir(filepath);
 };
@@ -84,11 +85,6 @@ file.name = function() {
   var filepath = path.join.apply(null, arguments);
   var re = /[\w.-]+$/;
   return re.exec(filepath)[0];
-};
-
-file.ext = function() {
-  var filepath = path.join.apply(null, arguments);
-  return path.extname(filepath);
 };
 
 file.basename = function() {
@@ -128,10 +124,11 @@ file.readFileSync = function(filepath, options) {
   try {
     return file.stripBOM(buffer);
   } catch (err) {
-    err.message = 'Failed to read "' + filepath + '": ' + err.code;
+    err.message = 'Failed to read "' + filepath + '": ' + err.message;
     throw err;
   }
 };
+
 
 // Read JSON file synchronously and parse content as JSON
 file.readJSONSync = function(filepath) {
@@ -161,7 +158,7 @@ file.readYAMLSync = function(filepath) {
  * Automatically determines the reader based on extension.
  * Use instead of grunt.file.readJSON or grunt.file.readYAML
  */
-file.readDataFile = function(filepath, options) {
+file.readDataSync = function(filepath, options) {
   options = options || {};
   var ext = path.extname(filepath);
   var reader = file.readJSONSync;
@@ -194,9 +191,9 @@ file.expandDataFiles = function (filepath, options) {
       // console.warn('Skipping empty file:'.yellow, fp);
     } else {
       if(options.namespace === true) {
-        obj[name] = _.extend(obj, file.readDataFile(fp));
+        obj[name] = _.extend(obj, file.readDataSync(fp));
       } else {
-        obj = _.extend(obj, file.readDataFile(fp));
+        obj = _.extend(obj, file.readDataSync(fp));
       }
     }
   });
@@ -241,29 +238,45 @@ file.writeFile = function (dest, content, callback) {
 };
 
 // Write files to disk, synchronously
-file.writeFileSync = function(src, content, options) {
+file.writeFileSync = function(dest, content, options) {
   options = options || {};
-  var dirpath = path.dirname(src);
+  var dirpath = path.dirname(dest);
   if (!file.exists(dirpath)) {
     file.mkdirSync(dirpath);
   }
-  fs.writeFileSync(src, content, file.encoding(options));
+  fs.writeFileSync(dest, content, file.encoding(options));
 };
 
-file.writeJSONSync = function(src, content, options) {
+file.writeJSONSync = function(dest, content, options) {
   options = options || {};
   options.indent = options.indent || 2;
   content = JSON.stringify(content, null, options.indent);
-  file.writeFileSync(src, content);
+  file.writeFileSync(dest, content);
 };
 
-file.writeYAMLSync = function(src, content, options) {
+file.writeYAMLSync = function(dest, content, options) {
   options = options || {};
   options.indent = options.indent || 2;
   content = YAML.dump(content, null, options.indent);
-  file.writeFileSync(src, content);
+  file.writeFileSync(dest, content);
 };
 
+// @example: file.writeDataFile('foo.yaml', {name: "Foo"});
+file.writeDataSync = function(dest, content, options) {
+  options = options || {};
+  var ext = path.extname(dest);
+  var writer = file.writeJSONSync;
+  switch(ext) {
+    case '.json':
+      writer = file.writeJSONSync;
+      break;
+    case '.yml':
+    case '.yaml':
+      writer = file.writeYAMLSync;
+      break;
+  }
+  return writer(dest, content, ext);
+};
 
 file.copyFileSync = function (src, dest, options) {
   options = options || {};
