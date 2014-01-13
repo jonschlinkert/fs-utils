@@ -20,7 +20,10 @@
     }
   ],
   "dependencies": {
-    "iconv-lite": "~0.2.11"
+    "iconv-lite": "~0.2.11",
+    "glob": "~3.2.8",
+    "cwd": "~0.1.1",
+    "js-yaml": "~3.0.1"
   },
   "devDependencies": {
     "chalk": "~0.2.0",
