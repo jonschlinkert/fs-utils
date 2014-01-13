@@ -264,18 +264,12 @@ file.writeYAMLSync = function(src, content, options) {
   file.writeFileSync(src, content);
 };
 
+
 file.copyFileSync = function (src, dest, options) {
   options = options || {};
   src = file.readFileSync(src);
-
-  if(options.process === true) {
-    var meta = require('./config')();
-    src = require('./utils').process(src, meta, options);
-  }
-
   file.writeFileSync(dest, src, options);
 };
-
 
 
 // If the given file exists, does it have any content?
