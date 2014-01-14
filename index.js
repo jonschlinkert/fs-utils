@@ -59,7 +59,7 @@ file.stripBOM = function(str) {
 // 'foo/bar/baz/quux'          => 'quux'
 // 'foo/bar/baz/quux/'         => ''
 file.lastSegment = function() {
-  var filepath = path.join.apply(null, arguments);
+  var filepath = file.normalizeSlash(path.join.apply(null, arguments));
   return filepath.split('/').pop();
 };
 
