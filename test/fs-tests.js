@@ -44,6 +44,38 @@ describe('file system methods', function () {
     expect(actual).to.eql(expected);
   });
 
+  it('should return true if a path is a real file', function() {
+    var expected = true;
+    var actual = file.isFile('package.json');
+    expect(actual).to.eql(expected);
+
+    expected = true;
+    actual = file.isFile('README.md');
+    expect(actual).to.eql(expected);
+  });
+
+  it('should return false if a path is not a real file', function() {
+    var expected = false;
+    var actual = file.isFile('test');
+    expect(actual).to.eql(expected);
+  });
+
+  it('should return true if a path is a real directory', function() {
+    var expected = true;
+    var actual = file.isDir('test');
+    expect(actual).to.eql(expected);
+  });
+
+  it('should return false if a path is not a real directory', function() {
+    var expected = false;
+    var actual = file.isDir('package.json');
+    expect(actual).to.eql(expected);
+
+    expected = false;
+    actual = file.isDir('README.md');
+    expect(actual).to.eql(expected);
+  });
+
   it('should read the file', function () {
     var expected = testTxtContents;
     var actual = file.readFileSync(testTxtPath);
@@ -64,31 +96,47 @@ describe('file system methods', function () {
 
   it('should read the json file automatically', function() {
     var expected = testJsonContents;
-    var actual = file.readDataFile(testJsonPath);
+    var actual = file.readDataSync(testJsonPath);
     expect(actual).to.eql(expected);
   });
 
   it('should read the yaml file automatically', function() {
     var expected = testYamlContents;
-    var actual = file.readDataFile(testYamlPath);
+    var actual = file.readDataSync(testYamlPath);
     expect(actual).to.eql(expected);
   });
 
-  xit('should make a directory - async', function(done) {
-  	var newFolder = path.join('test', 'actual', 'new', 'folder', 'async');
-    file.mkdir(newFolder, function(err) {
+  it('should make a directory - async', function(done) {
+    var newDir = ('test', 'actual', 'new', 'folder', 'async');
+    file.mkdir(newDir, function(err) {
+      if (err) return console.log(err);
+      var expected = file.exists(newDir);
+      expect(expected).to.be.ok;
+      done();
+    });
+  });
+
+  it('should remove a directory - async', function(done) {
+  	var existingDir = ('test', 'actual', 'new', 'folder', 'async');
+    file.rmdir(existingDir, function(err) {
     	if (err) return console.log(err);
-	    var expected = file.exists(newFolder);
+	    var expected = !file.exists(existingDir);
 	    expect(expected).to.be.ok;
 	    done();
     });
   });
 
   it('should make a directory - sync', function() {
-  	var newFolder = path.join('test', 'actual', 'new', 'folder', 'sync');
-  	file.mkdirSync(newFolder);
-    var expected = file.exists(newFolder);
+    var newDir = ('test', 'actual', 'new', 'folder', 'sync');
+    file.mkdirSync(newDir);
+    var expected = file.exists(newDir);
     expect(expected).to.be.ok;
   });
 
+  it('should remove a directory - sync', function() {
+  	var existingDir = ('test', 'actual', 'new', 'folder', 'sync');
+  	file.rmdirSync(existingDir);
+    var expected = !file.exists(existingDir);
+    expect(expected).to.be.ok;
+  });
 });

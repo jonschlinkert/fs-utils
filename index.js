@@ -31,8 +31,12 @@ var file = module.exports = {};
 
 // Normalize paths to use `/`
 file.pathSepRegex = /[\/\\]/g;
-file.normalizeSlash =function(str) {
+file.normalizeSlash = function(str) {
   return str.replace(file.pathSepRegex, '/');
+};
+
+file.escapeRegex = function(re) {
+  return re.replace(/(.)/g, '\\$1');
 };
 
 // Default encoding
@@ -55,67 +59,171 @@ file.stripBOM = function(str) {
   return contents;
 };
 
-// 'foo/bar/baz/quux/file.ext' => 'file.ext'
-// 'foo/bar/baz/quux'          => 'quux'
-// 'foo/bar/baz/quux/'         => ''
-file.lastSegment = function() {
-  var filepath = file.normalizeSlash(path.join.apply(null, arguments));
-  return filepath.split('/').pop();
-};
+/**
+ * CWD
+ */
 
 // Normalized path to the CWD
 // @example: file.cwd('foo')
 file.cwd = function() {
-  var filepath = path.join.apply(null, arguments);
+  var filepath = path.join.apply(path, arguments);
   return file.normalizeSlash(path.join(cwd, filepath));
 };
 
 // Change the current working directory (CWD)
-file.changeCWD = function() {
-  var filepath = path.join.apply(null, arguments);
+file.setCWD = function() {
+  var filepath = path.join.apply(path, arguments);
   process.chdir(filepath);
 };
 
-file.filename = function() {
-  var filepath = path.join.apply(null, arguments);
-  return path.basename(filepath);
+
+/**
+ * Path
+ */
+
+// The last segment of a filepath
+file.lastSegment = function() {
+  var filepath = path.join.apply(path, arguments);
+  return _.compact(filepath.split(path.sep)).pop();
 };
 
-file.name = function() {
-  var filepath = path.join.apply(null, arguments);
+// The last segment of a filepath
+file.firstSegment = function() {
+  var filepath = path.join.apply(path, arguments);
+  return _.compact(filepath.split(path.sep)).slice(0, 1)[0];
+};
+file.firstDir = file.firstSegment;
+
+// Directory path
+file.dirname = function() {
+  var filepath = path.join.apply(path, arguments).split(path.sep);
+  var dirlen = filepath.length - 1;
+  var dir = file.normalizeSlash(filepath.splice(0, dirlen).join(path.sep));
+  return file.addTrailingSlash(dir);
+};
+
+// Directory path
+file.dir = function() {
+  var filepath = path.join.apply(path, arguments);
+  if(file.endsWith(filepath, path.extname(filepath))) {
+    filepath = file.removeFilename(filepath);
+    return filepath;
+  }
+  return filepath;
+};
+
+// Last dictory path segment, excluding the filename
+file.lastDir = function() {
+  var filepath = path.join.apply(path, arguments);
+  if(file.hasExt(file.lastSegment(filepath))) {
+    filepath = file.removeFilename(filepath);
+  }
+  var segments = file.dir(filepath).split(path.sep);
+  // return _.compact(segments).splice(-1,1)[0];
+  return _.compact(segments).pop();
+};
+
+// The last character in a filepath. 'foo/bar/baz/' => '/'
+file.lastChar = function(filepath) {
+  return _.toArray(filepath).pop();
+};
+
+// Returns a filename
+file.filename = function() {
+  var filepath = path.join.apply(path, arguments);
   var re = /[\w.-]+$/;
-  return re.exec(filepath)[0];
+  if(re.exec(filepath)) {
+    return re.exec(filepath)[0];
+  } else {
+    return '';
+  }
+};
+
+// Strip the filename from a file path
+file.removeFilename = function() {
+  var filepath = path.join.apply(path, arguments);
+  if(file.hasExt(file.lastSegment(filepath))) {
+    filepath = filepath.replace(/[^\/|\\]*$/, '');
+  }
+  return filepath;
 };
 
 file.basename = function() {
-  var filepath = path.join.apply(null, arguments);
+  var filepath = path.join.apply(path, arguments);
   return path.basename(filepath, path.extname(filepath));
 };
 
 // Filename without extension
 file.base = function() {
-  var filepath = path.join.apply(null, arguments);
+  var filepath = path.join.apply(path, arguments);
   var name = path.basename(filepath, path.extname(filepath));
   return name.split('.')[0];
 };
 
-// Filename without extension
-file.rename = function(dir, filename) {
-  return file.addTrailingSlash(path.join(dir, filename));
+// File extension without the dot
+file.ext = function() {
+  var filepath = path.join.apply(path, arguments);
+  return path.extname(filepath).replace(/\./, '');
 };
 
-// Retrieve a specific file using globbing patterns. If
-// multiple matches are found, only the first is returned
-file.getFile = function(filepath, options) {
-  var str = file.expandFiles(filepath, options)[0];
-  return str ? String(str) : null;
+// Get the _last_ file extension.
+// @example 'foo/bar/file.tmpl.md' => 'md'
+file.lastExt = function() {
+  var filepath = path.join.apply(path, arguments);
+  var sep = file.escapeRegex(path.sep);
+  var ext = new RegExp('^.*?\\.([^.|' + sep + ']*)$', 'g');
+  var segments = ext.exec(filepath);
+  return segments && segments[1].length > 0 ? segments[1] : '';
 };
 
-// Does the filepath actually exist?
-file.exists = function() {
-  var filepath = path.join.apply(null, arguments);
-  return fs.existsSync(filepath);
+// Returns true if the filepath ends in a file with an extension
+file.hasExt = function() {
+  var filepath = path.join.apply(path, arguments);
+  var last = file.lastSegment(filepath);
+  return /\./.test(last);
 };
+
+// Returns true if the filepath ends with the suffix
+file.endsWith = function(filepath, suffix) {
+  filepath = path.normalize(filepath);
+  suffix = path.normalize(suffix);
+  return filepath.indexOf(suffix, filepath.length - suffix.length) !== -1;
+};
+
+// Return a list of files with the given extension.
+file.withExt = function (filepath, ext) {
+  var files = fs.readdirSync(filepath);
+  var list = [];
+  files.forEach(function (filename) {
+    if (file.endsWith(filename, ext)) {
+      list.push(filename);
+    }
+  });
+  return list;
+};
+
+// Add a trailing slash to the file path
+file.addTrailingSlash = function () {
+  var filepath = path.join.apply(path, arguments);
+  if (filepath.charAt(filepath.length - 1) !== path.sep) {
+    if(!file.hasExt(filepath) && !file.isFile(filepath)) {
+      filepath += path.sep;
+    }
+  }
+  return filepath;
+};
+
+// Remove the trailing slash from a file path
+file.removeTrailingSlash = function () {
+  var filepath = path.join.apply(path, arguments);
+  var sep = new RegExp(file.escapeRegex(path.sep) + '$');
+  return filepath.replace(sep, '');
+};
+
+
+/**
+ * Read Files
+ */
 
 // Read file synchronously
 file.readFileSync = function(filepath, options) {
@@ -201,6 +309,10 @@ file.expandDataFiles = function (filepath, options) {
 };
 
 
+/**
+ * Make directories
+ */
+
 file.mkdir = function (dest, callback) {
   var destpath = path.dirname(dest);
   fs.exists(destpath, function (exist) {
@@ -216,13 +328,103 @@ file.mkdir = function (dest, callback) {
 
 // Make any directories and intermediate directories that
 // don't already exist
-file.mkdirSync = function (dir, mode) {
+file.mkdirSync = function (dirpath, mode) {
   mode = mode || parseInt('0777', 8) & (~process.umask());
-  if (!fs.existsSync(dir)) {
-    file.mkdirSync(path.dirname(dir), mode);
-    fs.mkdirSync(dir, mode);
+  if (!fs.existsSync(dirpath)) {
+    var parentDir = path.dirname(dirpath);
+    if (fs.existsSync(parentDir)) {
+      fs.mkdirSync(dirpath, mode);
+    } else {
+      file.mkdirSync(parentDir);
+      fs.mkdirSync(dirpath, mode);
+    }
   }
 };
+
+
+// Testing out the `mkdirp` lib as an alternative to
+// built-in mkdir functions.
+file.mkdirp = function (dir) {
+  require('mkdirp')(dir, function (err) {
+    if (err) {console.error(err); }
+  });
+};
+file.mkdirpSync = function (dir) {
+  require('mkdirp').sync(dir);
+};
+
+
+/**
+ * Remove
+ */
+
+// Remove any directories and child directories that exist
+file.rmdirSync = function () {
+  var dirpath = path.join.apply(path, arguments);
+  if (fs.existsSync(dirpath)) {
+    var files = fs.readdirSync(dirpath);
+    for (var i = 0, l = files.length; i < l; i++) {
+      var filepath = path.join(dirpath, files[i]);
+      if (filepath === "." || filepath === "..") {
+        continue;
+      } else if (fs.statSync(filepath).isDirectory()) {
+        file.rmdirSync(filepath);
+      } else {
+        fs.unlinkSync(filepath);
+      }
+    }
+    fs.rmdirSync(dirpath);
+  }
+};
+
+// Just testing these two signatures. My thinking
+// is that a try catch might be slightly faster
+// here, and potentially avoid race conditions.
+file.rmdirSync2 = function () {
+  var files, dirpath = path.join.apply(path, arguments);
+  try {
+    files = fs.readdirSync(dirpath);
+  } catch (err) {
+    return;
+  }
+  if (files.length > 0) {
+    for (var i = 0, l = files.length; i < l; i++) {
+      var filepath = path.join(dirpath, files[i]);
+      if (filepath === "." || filepath === "..") {
+        continue;
+      } else if (fs.statSync(filepath).isDirectory()) {
+        file.rmdirSync(filepath);
+      } else {
+        fs.unlinkSync(filepath);
+      }
+    }
+  }
+  fs.rmdirSync(dirpath);
+};
+
+file.rmdir = function (dirpath, callback) {
+  if (!_.isFunction(callback)) {callback = function () {};}
+  fs.readdir(dirpath, function (err, files) {
+    if (err) {return callback(err);}
+    require('async').each(files, function (segment, next) {
+      var dirpath = path.join(dirpath, segment);
+      fs.stat(dirpath, function (err, stats) {
+        if (err) {return callback(err); }
+        if (stats.isDirectory()) {
+          file.rmdir(dirpath, next);
+        } else {
+          fs.unlink(dirpath, next);
+        }
+      });
+    }, function () {
+      fs.rmdir(dirpath, callback);
+    });
+  });
+};
+
+/**
+ * Write
+ */
 
 file.writeFile = function (dest, content, callback) {
   var destpath = path.dirname(dest);
@@ -278,12 +480,44 @@ file.writeDataSync = function(dest, content, options) {
   return writer(dest, content, ext);
 };
 
+
+/**
+ * Copy
+ */
+
+// Copy files synchronously from a to b.
 file.copyFileSync = function (src, dest, options) {
   options = options || {};
   src = file.readFileSync(src);
   file.writeFileSync(dest, src, options);
 };
 
+
+/**
+ * Rename
+ */
+
+// Filename without extension
+file.rename = function (from, to) {
+  fs.rename(from, to, function (err) {
+    if (err) {throw err; }
+    fs.stat(to, function (err, stats) {
+      if (err) {throw err; }
+      console.log('stats: ' + JSON.stringify(stats));
+    });
+  });
+};
+
+
+/**
+ * Checks
+ */
+
+// Does the filepath actually exist?
+file.exists = function() {
+  var filepath = path.join.apply(path, arguments);
+  return fs.existsSync(filepath);
+};
 
 // If the given file exists, does it have any content?
 file.isEmptyFile = function(filepath) {
@@ -308,6 +542,7 @@ file.isPathAbsolute = function (filepath) {
   filepath = path.normalize(filepath);
   return path.resolve(filepath) === filepath;
 };
+
 
 // SOURCED FROM globule: https://github.com/cowboy/node-globule
 // Process specified wildcard glob patterns or filenames against a
@@ -357,4 +592,12 @@ file.expandFiles = function(patterns, options) {
   return file.expand(patterns, options).filter(function (filepath) {
     return fs.statSync(filepath).isFile();
   });
+};
+
+
+// Retrieve a specific file using globbing patterns. If
+// multiple matches are found, only the first is returned
+file.getFile = function(filepath, options) {
+  var str = file.expandFiles(filepath, options)[0];
+  return str ? String(str) : null;
 };
