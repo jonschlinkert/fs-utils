@@ -1,6 +1,6 @@
 {
   "name": "fs-utils",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Generalized fs utils for Node.js projects.",
   "main": "index.js",
   "scripts": {
