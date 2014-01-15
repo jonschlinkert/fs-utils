@@ -477,7 +477,7 @@ file.writeDataSync = function(dest, content, options) {
       writer = file.writeYAMLSync;
       break;
   }
-  return writer(dest, content, ext);
+  return writer(dest, content, options);
 };
 
 
