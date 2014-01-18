@@ -106,7 +106,7 @@ describe('file system methods', function () {
     expect(actual).to.eql(expected);
   });
 
-  it('should make a directory - async', function(done) {
+  it('should make a directory, asynchronously', function(done) {
     var newDir = ('test', 'actual', 'new', 'folder', 'async');
     file.mkdir(newDir, function(err) {
       if (err) return console.log(err);
@@ -116,7 +116,14 @@ describe('file system methods', function () {
     });
   });
 
-  it('should remove a directory - async', function(done) {
+  it('should make a directory, synchronously', function() {
+    var newDir = ('test', 'actual', 'new', 'folder', 'sync');
+    file.mkdirSync(newDir);
+    var expected = file.exists(newDir);
+    expect(expected).to.be.ok;
+  });
+
+  it('should remove a directory, asynchronously', function(done) {
   	var existingDir = ('test', 'actual', 'new', 'folder', 'async');
     file.rmdir(existingDir, function(err) {
     	if (err) return console.log(err);
@@ -126,16 +133,17 @@ describe('file system methods', function () {
     });
   });
 
-  it('should make a directory - sync', function() {
-    var newDir = ('test', 'actual', 'new', 'folder', 'sync');
-    file.mkdirSync(newDir);
-    var expected = file.exists(newDir);
+  it('should remove a directory, synchronously', function() {
+    var existingDir = ('test', 'actual', 'new', 'folder', 'sync');
+    file.rmdirSync(existingDir);
+    var expected = !file.exists(existingDir);
     expect(expected).to.be.ok;
   });
 
-  it('should remove a directory - sync', function() {
-  	var existingDir = ('test', 'actual', 'new', 'folder', 'sync');
-  	file.rmdirSync(existingDir);
+  it('should "delete" a directory, synchronously', function() {
+    var existingDir = ('test', 'actual', 'new', 'folder', 'sync');
+    file.mkdirSync(existingDir);
+    file.delete(existingDir);
     var expected = !file.exists(existingDir);
     expect(expected).to.be.ok;
   });

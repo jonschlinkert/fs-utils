@@ -1,10 +1,17 @@
-# fs-utils
+# fs-utils [![NPM version](https://badge.fury.io/js/fs-utils.png)](http://badge.fury.io/js/fs-utils)
 
-> File utils for Node.js
-
+> File system utils for Node.js projects.
 
 ```bash
 npm i fs-utils --save
+```
+
+## Usage
+
+```js
+var file = require('fs-utils');
+
+file.readFileSync('foo.txt');
 ```
 
 ## Authors
@@ -20,5 +27,5 @@ npm i fs-utils --save
 + [twitter/doowb](http://twitter.com/jonschlinkert)
 
 ## License
-Copyright (c) 2014 Jon Schlinkert, Brian Woodward, contributors.
-Released under the MIT license
+Copyright (c) 2014 [Jon Schlinkert](http://twitter.com/jonschlinkert), [Brian Woodward](http://twitter.com/doowb), contributors.
+Released under the [MIT license](./LICENSE-MIT)

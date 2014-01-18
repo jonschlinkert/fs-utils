@@ -11,8 +11,8 @@ var path = require('path');
 var fs   = require('fs');
 
 // node_modules
+var async = require('async');
 var glob  = require('glob');
-var cwd   = require('cwd');
 var YAML  = require('js-yaml');
 var _     = require('lodash');
 
@@ -24,7 +24,6 @@ var file = module.exports = {};
  * TODO:
  *  - endsWith
  *  - lastExt (last extension)
- *
  *  - readYFM?
  *  - readContent? (returns the content of a page, without YFM)
  */
@@ -37,6 +36,23 @@ file.normalizeSlash = function(str) {
 
 file.escapeRegex = function(re) {
   return re.replace(/(.)/g, '\\$1');
+};
+
+file.toArray = function(val) {
+  val = !Array.isArray(val) ? [val] : val;
+  return _.compact([val]);
+};
+
+// Build RegExp patterns from a string or array
+// @examples:
+//   'foo' => '(?:foo)'
+//   ['foo', 'bar', 'baz'] => '(?:foo|bar|baz)'
+file.buildRegexGroup = function(patterns) {
+  patterns = utils.toArray(patterns);
+  if(patterns.length > 0) {
+    patterns = patterns.join('|');
+  }
+  return '(?:' + patterns + ')';
 };
 
 // Default encoding
@@ -67,7 +83,7 @@ file.stripBOM = function(str) {
 // @example: file.cwd('foo')
 file.cwd = function() {
   var filepath = path.join.apply(path, arguments);
-  return file.normalizeSlash(path.join(cwd, filepath));
+  return file.normalizeSlash(path.join(process.cwd(), filepath));
 };
 
 // Change the current working directory (CWD)
@@ -216,7 +232,7 @@ file.addTrailingSlash = function () {
 // Remove the trailing slash from a file path
 file.removeTrailingSlash = function () {
   var filepath = path.join.apply(path, arguments);
-  var sep = new RegExp(file.escapeRegex(path.sep) + '$');
+  var sep = new RegExp(file.escapeRegex(path.sep) + '+$');
   return filepath.replace(sep, '');
 };
 
@@ -236,7 +252,6 @@ file.readFileSync = function(filepath, options) {
     throw err;
   }
 };
-
 
 // Read JSON file synchronously and parse content as JSON
 file.readJSONSync = function(filepath) {
@@ -341,7 +356,6 @@ file.mkdirSync = function (dirpath, mode) {
   }
 };
 
-
 // Testing out the `mkdirp` lib as an alternative to
 // built-in mkdir functions.
 file.mkdirp = function (dir) {
@@ -353,74 +367,6 @@ file.mkdirpSync = function (dir) {
   require('mkdirp').sync(dir);
 };
 
-
-/**
- * Remove
- */
-
-// Remove any directories and child directories that exist
-file.rmdirSync = function () {
-  var dirpath = path.join.apply(path, arguments);
-  if (fs.existsSync(dirpath)) {
-    var files = fs.readdirSync(dirpath);
-    for (var i = 0, l = files.length; i < l; i++) {
-      var filepath = path.join(dirpath, files[i]);
-      if (filepath === "." || filepath === "..") {
-        continue;
-      } else if (fs.statSync(filepath).isDirectory()) {
-        file.rmdirSync(filepath);
-      } else {
-        fs.unlinkSync(filepath);
-      }
-    }
-    fs.rmdirSync(dirpath);
-  }
-};
-
-// Just testing these two signatures. My thinking
-// is that a try catch might be slightly faster
-// here, and potentially avoid race conditions.
-file.rmdirSync2 = function () {
-  var files, dirpath = path.join.apply(path, arguments);
-  try {
-    files = fs.readdirSync(dirpath);
-  } catch (err) {
-    return;
-  }
-  if (files.length > 0) {
-    for (var i = 0, l = files.length; i < l; i++) {
-      var filepath = path.join(dirpath, files[i]);
-      if (filepath === "." || filepath === "..") {
-        continue;
-      } else if (fs.statSync(filepath).isDirectory()) {
-        file.rmdirSync(filepath);
-      } else {
-        fs.unlinkSync(filepath);
-      }
-    }
-  }
-  fs.rmdirSync(dirpath);
-};
-
-file.rmdir = function (dirpath, callback) {
-  if (!_.isFunction(callback)) {callback = function () {};}
-  fs.readdir(dirpath, function (err, files) {
-    if (err) {return callback(err);}
-    require('async').each(files, function (segment, next) {
-      var dirpath = path.join(dirpath, segment);
-      fs.stat(dirpath, function (err, stats) {
-        if (err) {return callback(err); }
-        if (stats.isDirectory()) {
-          file.rmdir(dirpath, next);
-        } else {
-          fs.unlink(dirpath, next);
-        }
-      });
-    }, function () {
-      fs.rmdir(dirpath, callback);
-    });
-  });
-};
 
 /**
  * Write
@@ -463,10 +409,10 @@ file.writeYAMLSync = function(dest, content, options) {
   file.writeFileSync(dest, content);
 };
 
-// @example: file.writeDataFile('foo.yaml', {name: "Foo"});
+// @example: file.writeDataSync('foo.yaml', {name: "Foo"});
 file.writeDataSync = function(dest, content, options) {
   options = options || {};
-  var ext = path.extname(dest);
+  var ext = options.ext || path.extname(dest);
   var writer = file.writeJSONSync;
   switch(ext) {
     case '.json':
@@ -494,16 +440,70 @@ file.copyFileSync = function (src, dest, options) {
 
 
 /**
- * Rename
+ * Remove
  */
 
-// Filename without extension
-file.rename = function (from, to) {
-  fs.rename(from, to, function (err) {
-    if (err) {throw err; }
-    fs.stat(to, function (err, stats) {
-      if (err) {throw err; }
-      console.log('stats: ' + JSON.stringify(stats));
+// Remove any directories and child directories that exist
+file.rmdirSync = function () {
+  var dirpath = path.join.apply(path, arguments);
+  if (fs.existsSync(dirpath)) {
+    var files = fs.readdirSync(dirpath);
+    for (var i = 0, l = files.length; i < l; i++) {
+      var filepath = path.join(dirpath, files[i]);
+      if (filepath === "." || filepath === "..") {
+        continue;
+      } else if (fs.statSync(filepath).isDirectory()) {
+        file.rmdirSync(filepath);
+      } else {
+        fs.unlinkSync(filepath);
+      }
+    }
+    fs.rmdirSync(dirpath);
+  }
+};
+
+// Just testing these two signatures. My thinking
+// is that a try catch might be slightly faster
+// here, and potentially avoid race conditions.
+file.delete = function () {
+  var dirpath = path.join.apply(path, arguments);
+  var files;
+  try {
+    files = fs.readdirSync(dirpath);
+  } catch (err) {
+    return;
+  }
+  if (files.length > 0) {
+    for (var i = 0, l = files.length; i < l; i++) {
+      var filepath = path.join(dirpath, files[i]);
+      if (filepath === "." || filepath === "..") {
+        continue;
+      } else if (file.isDir(filepath)) {
+        rimraf.sync(filepath);
+      } else {
+        fs.unlinkSync(filepath);
+      }
+    }
+  }
+  fs.rmdirSync(dirpath);
+};
+
+file.rmdir = function (dirpath, callback) {
+  if (!_.isFunction(callback)) {callback = function () {};}
+  fs.readdir(dirpath, function (err, files) {
+    if (err) {return callback(err);}
+    async.each(files, function (segment, next) {
+      var dirpath = path.join(dirpath, segment);
+      fs.stat(dirpath, function (err, stats) {
+        if (err) {return callback(err); }
+        if (stats.isDirectory()) {
+          rimraf(dirpath, next);
+        } else {
+          fs.unlink(dirpath, next);
+        }
+      });
+    }, function () {
+      fs.rmdir(dirpath, callback);
     });
   });
 };
@@ -519,29 +519,34 @@ file.exists = function() {
   return fs.existsSync(filepath);
 };
 
-// If the given file exists, does it have any content?
-file.isEmptyFile = function(filepath) {
-  filepath = file.readFileSync(filepath);
-  return (filepath.length === 0 || filepath === '') ? true : false;
-};
-
 // Is the path a directory?
-file.isDir = function(filepath) {
+file.isDir = function() {
+  var filepath = path.join.apply(path, arguments);
   if (!file.exists(filepath)) {return false;}
   return fs.statSync(filepath).isDirectory();
 };
 
 // Is the path a file?
-file.isFile = function(filepath) {
+file.isFile = function() {
+  var filepath = path.join.apply(path, arguments);
   if (!file.exists(filepath)) {return false;}
   return fs.statSync(filepath).isFile();
 };
 
-// Is the given filepath an absolute path?
-file.isPathAbsolute = function (filepath) {
-  filepath = path.normalize(filepath);
-  return path.resolve(filepath) === filepath;
+// If the file actually exists, does it have any content?
+file.isEmptyFile = function() {
+  var filepath = path.join.apply(path, arguments);
+  if (!file.exists(filepath)) {return false;}
+  filepath = file.readFileSync(filepath);
+  return (filepath.length === 0 || filepath === '') ? true : false;
 };
+
+// Is the path absolute?
+file.isPathAbsolute = function () {
+  filepath = path.join.apply(path, arguments);
+  return path.resolve(filepath) === file.removeTrailingSlash(filepath);
+};
+
 
 
 // SOURCED FROM globule: https://github.com/cowboy/node-globule
@@ -601,3 +606,11 @@ file.getFile = function(filepath, options) {
   var str = file.expandFiles(filepath, options)[0];
   return str ? String(str) : null;
 };
+
+// function fn(src) {
+//   return src.match(/^file\.(.+) =/gim).map(function(match) {
+//     return match.replace(/(file\.| =)/g, '');
+//   });
+// };
+
+// file.writeDataSync('tmp/fn.json', fn(file.readFileSync(__filename)));
