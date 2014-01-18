@@ -11,10 +11,11 @@ var path = require('path');
 var fs   = require('fs');
 
 // node_modules
-var async = require('async');
-var glob  = require('glob');
-var YAML  = require('js-yaml');
-var _     = require('lodash');
+var async  = require('async');
+var rimraf = require('rimraf');
+var glob   = require('glob');
+var YAML   = require('js-yaml');
+var _      = require('lodash');
 
 
 // Export the `file` object
@@ -462,30 +463,36 @@ file.rmdirSync = function () {
   }
 };
 
-// Just testing these two signatures. My thinking
-// is that a try catch might be slightly faster
-// here, and potentially avoid race conditions.
-file.delete = function () {
-  var dirpath = path.join.apply(path, arguments);
-  var files;
-  try {
-    files = fs.readdirSync(dirpath);
-  } catch (err) {
-    return;
+// file.delete was sourced from grunt.file
+// https://github.com/gruntjs/grunt/blob/master/lib/grunt/file.js
+// https://github.com/gruntjs/grunt/blob/master/LICENSE-MIT
+//
+// Delete folders and files recursively
+file.delete = function(filepath, options) {
+  filepath = String(filepath);
+  options = options || {};
+
+  if (!file.exists(filepath)) {
+    console.warn('Cannot delete nonexistent file.');
+    return false;
   }
-  if (files.length > 0) {
-    for (var i = 0, l = files.length; i < l; i++) {
-      var filepath = path.join(dirpath, files[i]);
-      if (filepath === "." || filepath === "..") {
-        continue;
-      } else if (file.isDir(filepath)) {
-        rimraf.sync(filepath);
-      } else {
-        fs.unlinkSync(filepath);
-      }
+  // Only delete cwd or outside cwd if --force enabled. Be careful, people!
+  if (!options.force) {
+    if (file.isPathCwd(filepath)) {
+      console.warn('Cannot delete the current working directory.');
+      return false;
+    } else if (!file.isPathInCwd(filepath)) {
+      console.warn('Cannot delete files outside the current working directory.');
+      return false;
     }
   }
-  fs.rmdirSync(dirpath);
+  try {
+    // Actually delete. Or not.
+    rimraf.sync(filepath);
+    return true;
+  } catch(e) {
+    throw new Error('Unable to delete "' + filepath + '" file (' + e.message + ').', e);
+  }
 };
 
 file.rmdir = function (dirpath, callback) {
@@ -541,64 +548,61 @@ file.isEmptyFile = function() {
   return (filepath.length === 0 || filepath === '') ? true : false;
 };
 
+// The following functions are sourced from grunt.file
+// https://github.com/gruntjs/grunt/blob/master/lib/grunt/file.js
+// https://github.com/gruntjs/grunt/blob/master/LICENSE-MIT
+// - isPathAbsolute
+// - arePathsEquivalent
+// - doesPathContain
+// - isPathCwd
+// - isPathInCwd
+
 // Is the path absolute?
 file.isPathAbsolute = function () {
   filepath = path.join.apply(path, arguments);
   return path.resolve(filepath) === file.removeTrailingSlash(filepath);
 };
 
-
-
-// SOURCED FROM globule: https://github.com/cowboy/node-globule
-// Process specified wildcard glob patterns or filenames against a
-// callback, excluding and uniquing files in the result set.
-function processPatterns(patterns, fn) {
-  return _.flatten(patterns).reduce(function(result, pattern) {
-    if (pattern.indexOf('!') === 0) {
-      // If the first character is ! all matches via this pattern should be
-      // removed from the result set.
-      pattern = pattern.slice(1);
-      return _.difference(result, fn(pattern));
-    } else {
-      // Otherwise, add all matching filepaths to the result set.
-      return _.union(result, fn(pattern));
-    }
-  }, []);
-}
-
-/**
- * Returns both files and directories based on the given patterns and
- * specified options. Any options supported by
- * [glob](https://github.com/isaacs/node-glob#options) may be used.
- *
- * @param {String} pattern The glob pattern to use
- * @param {Object} options The object of options to pass to 'glob'
- */
-file.expand = function(patterns, options) {
-  options = _.extend(options || {});
-  patterns = !Array.isArray(patterns) ? [patterns] : patterns;
-  var matches = processPatterns(patterns, function(pattern) {
-    pattern = file.normalizeSlash(path.join(options.cwd || '', pattern));
-    return glob.sync(pattern, options);
-  });
-  return matches;
+// Do all the specified paths refer to the same path?
+file.arePathsEquivalent = function(first) {
+  first = path.resolve(first);
+  for (var i = 1; i < arguments.length; i++) {
+    if (first !== path.resolve(arguments[i])) { return false; }
+  }
+  return true;
 };
 
-/**
- * Returns only files based on the given patterns and specified options.
- * Any options supported by [glob](https://github.com/isaacs/node-glob#options)
- * may be used.
- *
- * @param {String} pattern The glob pattern to use
- * @param {Object} options The options to pass to 'glob'
- */
-file.expandFiles = function(patterns, options) {
-  options = _.extend({}, options);
-  return file.expand(patterns, options).filter(function (filepath) {
-    return fs.statSync(filepath).isFile();
-  });
+// Are descendant path(s) contained within ancestor path? Note: does not test
+// if paths actually exist.
+file.doesPathContain = function(ancestor) {
+  ancestor = path.resolve(ancestor);
+  var relative;
+  for (var i = 1; i < arguments.length; i++) {
+    relative = path.relative(path.resolve(arguments[i]), ancestor);
+    if (relative === '' || /\w+/.test(relative)) { return false; }
+  }
+  return true;
 };
 
+// Test to see if a filepath is the CWD.
+file.isPathCwd = function() {
+  var filepath = path.join.apply(path, arguments);
+  try {
+    return file.arePathsEquivalent(process.cwd(), fs.realpathSync(filepath));
+  } catch(e) {
+    return false;
+  }
+};
+
+// Test to see if a filepath is contained within the CWD.
+file.isPathInCwd = function() {
+  var filepath = path.join.apply(path, arguments);
+  try {
+    return file.doesPathContain(process.cwd(), fs.realpathSync(filepath));
+  } catch(e) {
+    return false;
+  }
+};
 
 // Retrieve a specific file using globbing patterns. If
 // multiple matches are found, only the first is returned

@@ -1,6 +1,6 @@
 {
   "name": "fs-utils",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "File system utils for Node.js projects.",
   "repository": {
     "type": "git",
