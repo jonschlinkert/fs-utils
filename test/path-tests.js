@@ -511,6 +511,14 @@ describe('path.basename:', function () {
   });
 });
 
+describe('File name:', function() {
+  it('should get the extension', function() {
+    var expected = 'file.json';
+    var actual = file.filename('path/to/file.json');
+    expect(actual).to.eql(expected);
+  });
+});
+
 describe('file extension:', function() {
   it('should get the extension', function() {
     var expected = 'json';

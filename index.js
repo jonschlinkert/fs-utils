@@ -13,7 +13,7 @@ var fs   = require('fs');
 // node_modules
 var async  = require('async');
 var rimraf = require('rimraf');
-var glob   = require('glob');
+var glob   = require('globule');
 var YAML   = require('js-yaml');
 var _      = require('lodash');
 
@@ -21,13 +21,6 @@ var _      = require('lodash');
 // Export the `file` object
 var file = module.exports = {};
 
-/**
- * TODO:
- *  - endsWith
- *  - lastExt (last extension)
- *  - readYFM?
- *  - readContent? (returns the content of a page, without YFM)
- */
 
 // Normalize paths to use `/`
 file.pathSepRegex = /[\/\\]/g;
@@ -149,11 +142,17 @@ file.lastChar = function(filepath) {
 file.filename = function() {
   var filepath = path.join.apply(path, arguments);
   var re = /[\w.-]+$/;
-  if(re.exec(filepath)) {
-    return re.exec(filepath)[0];
-  } else {
+  try {
+    var foo = re.exec(filepath)[0];
+    return foo;
+  } catch(e) {
     return '';
   }
+};
+
+file.getFilename = function() {
+  var filepath = path.join.apply(path, arguments);
+  return filepath.split(path.sep).pop().split('/').pop();
 };
 
 // Strip the filename from a file path
@@ -165,12 +164,13 @@ file.removeFilename = function() {
   return filepath;
 };
 
+// Filename without extension
 file.basename = function() {
   var filepath = path.join.apply(path, arguments);
   return path.basename(filepath, path.extname(filepath));
 };
 
-// Filename without extension
+// Filename without extension. Differs slightly from basename
 file.base = function() {
   var filepath = path.join.apply(path, arguments);
   var name = path.basename(filepath, path.extname(filepath));
@@ -309,7 +309,7 @@ file.expandDataFiles = function (filepath, options) {
   options = options || {};
 
   var obj = {};
-  file.expandFiles(filepath, options).map(function (fp) {
+  glob.find(filepath, options).map(function (fp) {
     var name = path.basename(fp, path.extname(fp));
     if (file.isEmptyFile(fp)) {
       // console.warn('Skipping empty file:'.yellow, fp);
@@ -463,7 +463,7 @@ file.rmdirSync = function () {
   }
 };
 
-// file.delete was sourced from grunt.file
+// file.delete was sourced and modified from grunt.file
 // https://github.com/gruntjs/grunt/blob/master/lib/grunt/file.js
 // https://github.com/gruntjs/grunt/blob/master/LICENSE-MIT
 //
@@ -604,17 +604,24 @@ file.isPathInCwd = function() {
   }
 };
 
+
+
+
+
 // Retrieve a specific file using globbing patterns. If
 // multiple matches are found, only the first is returned
 file.getFile = function(filepath, options) {
-  var str = file.expandFiles(filepath, options)[0];
+  var str = glob.find(filepath, options)[0];
   return str ? String(str) : null;
 };
 
-// function fn(src) {
-//   return src.match(/^file\.(.+) =/gim).map(function(match) {
-//     return match.replace(/(file\.| =)/g, '');
-//   });
-// };
 
+
+// @private
+// List out functions
+function fn(src) {
+  return src.match(/^file\.(.+) =/gim).map(function(match) {
+    return match.replace(/(file\.| =)/g, '');
+  });
+};
 // file.writeDataSync('tmp/fn.json', fn(file.readFileSync(__filename)));

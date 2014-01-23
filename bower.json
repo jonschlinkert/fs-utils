@@ -1,0 +1,7 @@
+{
+  "name": "fs-utils",
+  "version": "0.1.10",
+  "main": [
+    "index.js"
+  ]
+}
