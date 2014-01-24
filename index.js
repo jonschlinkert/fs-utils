@@ -325,6 +325,24 @@ file.expandDataFiles = function (filepath, options) {
 };
 
 
+file.getStatsSync = function (filepath) {
+  try {
+    return fs.statSync(filepath);
+  } catch (err) {
+    err.message = 'Failed to retrieve "' + filepath + '" stats: ' + err.message;
+    throw err;
+  }
+};
+
+file.getStats = function (filepath, callback) {
+  try {
+    return fs.stat(filepath, callback);
+  } catch (err) {
+    err.message = 'Failed to retrieve "' + filepath + '" stats: ' + err.message;
+    return callback(err, null);
+  }
+};
+
 /**
  * Make directories
  */
@@ -603,8 +621,6 @@ file.isPathInCwd = function() {
     return false;
   }
 };
-
-
 
 
 

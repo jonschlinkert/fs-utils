@@ -147,4 +147,32 @@ describe('file system methods', function () {
     var expected = !file.exists(existingDir);
     expect(expected).to.be.ok;
   });
+
+  it('should retrieve file stats, synchronously', function() {
+    var stats = file.getStatsSync(testTxtPath);
+    expect(stats).to.have.property('mtime');
+  });
+
+  it('should retrieve file stats, asynchronously', function(done) {
+    file.getStats(testTxtPath, function (err, stats) {
+      expect(stats).to.have.property('mtime');
+      done();
+    });
+  });
+
+  it('should throw error when attempting to retrieve stats, synchronously', function() {
+    try {
+      var stats = file.getStatsSync('some/fake/path/to/fake/file.html');
+    } catch (err) {
+      expect(err).not.to.be.null;
+    }
+  });
+
+  it('should return error when attempting to retrieve stats, asynchronously', function(done) {
+    file.getStats('some/fake/path/to/fake/file.html', function (err, stats) {
+      expect(err).not.to.be.null;
+      expect(stats).to.be.undefined;
+      done();
+    });
+  });
 });
