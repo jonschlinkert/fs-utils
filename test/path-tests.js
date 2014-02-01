@@ -158,6 +158,27 @@ describe('lastExt', function() {
 });
 
 
+describe('containsExt', function() {
+  it('should return files from specified directory that end with the given file extension.', function() {
+    var expected = true;
+    var actual = file.containsExt('foo/bar/baz.js', ['js', 'coffee']);
+    expect(actual).to.eql(expected);
+
+    var expected = true;
+    var actual = file.containsExt('foo/bar/baz.js', 'js');
+    expect(actual).to.eql(expected);
+
+    expected = false;
+    actual = file.containsExt('foo/bar/baz.coffee', 'coffeescript');
+    expect(actual).to.eql(expected);
+
+    expected = false;
+    actual = file.containsExt('foo/bar/baz.coffee', ['coffeescript', 'foo', 'bar']);
+    expect(actual).to.eql(expected);
+  });
+});
+
+
 describe('withExt', function() {
   it('should return files from specified directory that end with the given file extension.', function() {
     var expected = ['test.txt'];

@@ -11,7 +11,7 @@
 var expect = require('chai').expect;
 var path = require('path');
 var file = require('../');
-var cwd = require('cwd');
+var cwd = process.cwd();
 
 describe('file system methods', function () {
 

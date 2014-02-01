@@ -8,7 +8,8 @@
 
 // Node.js
 var path = require('path');
-var fs   = require('fs');
+var fs   = require('graceful-fs');
+var os   = require('os');
 
 // node_modules
 var async  = require('async');
@@ -21,6 +22,27 @@ var _      = require('lodash');
 // Export the `file` object
 var file = module.exports = {};
 
+// Build regex based on os EOL
+file.EOLre = new RegExp(os.EOL, 'g');
+
+// Normalize line endings
+file.normalizeEOL = function(str) {
+  return str.replace(/\r\n|\n/g, os.EOL);
+};
+
+// Normalize to newlines
+file.normalizeNL = function(str) {
+  return str.replace(/\r\n|\n/g, '\n');
+};
+
+file.escapeRegex = function(re) {
+  return re.replace(/(.)/g, '\\$1');
+};
+
+file.arrayify = function(val) {
+  return !Array.isArray(val) ? [val] : val;
+};
+
 
 // Normalize paths to use `/`
 file.pathSepRegex = /[\/\\]/g;
@@ -28,26 +50,6 @@ file.normalizeSlash = function(str) {
   return str.replace(file.pathSepRegex, '/');
 };
 
-file.escapeRegex = function(re) {
-  return re.replace(/(.)/g, '\\$1');
-};
-
-file.toArray = function(val) {
-  val = !Array.isArray(val) ? [val] : val;
-  return _.compact([val]);
-};
-
-// Build RegExp patterns from a string or array
-// @examples:
-//   'foo' => '(?:foo)'
-//   ['foo', 'bar', 'baz'] => '(?:foo|bar|baz)'
-file.buildRegexGroup = function(patterns) {
-  patterns = utils.toArray(patterns);
-  if(patterns.length > 0) {
-    patterns = patterns.join('|');
-  }
-  return '(?:' + patterns + ')';
-};
 
 // Default encoding
 file.encoding = function(options) {
@@ -57,10 +59,8 @@ file.encoding = function(options) {
 
 file.preserveBOM = false;
 file.stripBOM = function(str) {
-  var EOL  = require('os').EOL;
-  var EOLre = new RegExp(EOL, 'g');
   // Transform EOL
-  var contents = (EOL === '\n') ? str : str.replace(EOLre, '\n');
+  var contents = (os.EOL === '\n') ? str : str.replace(file.EOLre, '\n');
   // Strip UTF BOM
   if (!file.preserveBOM && contents.charCodeAt(0) === 0xFEFF) {
     contents = contents.substring(1);
@@ -176,6 +176,8 @@ file.base = function() {
   var name = path.basename(filepath, path.extname(filepath));
   return name.split('.')[0];
 };
+// Alias
+file.name = file.base;
 
 // File extension without the dot
 file.ext = function() {
@@ -200,6 +202,31 @@ file.hasExt = function() {
   return /\./.test(last);
 };
 
+// Returns true if the filepath has one of the given extensions
+file.containsExt = function(filepath, ext) {
+  ext = file.arrayify(ext);
+  if(ext.length > 1) {
+    ext = '?:' + ext.join('|');
+  } else {
+    ext = ext.join('');
+  }
+  return new RegExp('\\.('+ext+')$').test(filepath);
+};
+
+
+// Return a list of files with the given extension.
+file.withExt = function (filepath, ext) {
+  var files = fs.readdirSync(filepath);
+  var list = [];
+  files.forEach(function (filename) {
+    if (file.containsExt(filename, ext)) {
+      list.push(filename);
+    }
+  });
+  return list;
+};
+
+
 // Returns true if the filepath ends with the suffix
 file.endsWith = function(filepath, suffix) {
   filepath = path.normalize(filepath);
@@ -207,17 +234,6 @@ file.endsWith = function(filepath, suffix) {
   return filepath.indexOf(suffix, filepath.length - suffix.length) !== -1;
 };
 
-// Return a list of files with the given extension.
-file.withExt = function (filepath, ext) {
-  var files = fs.readdirSync(filepath);
-  var list = [];
-  files.forEach(function (filename) {
-    if (file.endsWith(filename, ext)) {
-      list.push(filename);
-    }
-  });
-  return list;
-};
 
 // Add a trailing slash to the file path
 file.addTrailingSlash = function () {
@@ -277,6 +293,24 @@ file.readYAMLSync = function(filepath) {
 };
 
 
+// Read optional JSON. Ben Alman, https://gist.github.com/2876125
+file.readOptionalJSON = function(filepath) {
+  var buffer = {};
+  try {
+    buffer = file.readJSONSync(filepath);
+  } catch (e) {}
+  return buffer;
+};
+
+file.readOptionalYAML = function(filepath) {
+  var buffer = {};
+  try {
+    buffer = file.readYAMLSync(filepath);
+  } catch (e) {}
+  return buffer;
+};
+
+
 /**
  * Data file reader factory
  * Automatically determines the reader based on extension.
@@ -306,24 +340,34 @@ file.readDataSync = function(filepath, options) {
  * @return {Object}          Object of metadata
  */
 file.expandDataFiles = function (filepath, options) {
-  options = options || {};
+  var opts = _.extend({}, options);
+  opts.data = opts.data || {};
+  var contents;
 
-  var obj = {};
-  glob.find(filepath, options).map(function (fp) {
-    var name = path.basename(fp, path.extname(fp));
+  glob.find(filepath, opts).map(function (fp) {
+    var name = file.basename(fp);
     if (file.isEmptyFile(fp)) {
-      // console.warn('Skipping empty file:'.yellow, fp);
+      if(opts.verbose) {console.warn('Skipping empty file:'.yellow, fp);}
     } else {
-      if(options.namespace === true) {
-        obj[name] = _.extend(obj, file.readDataSync(fp));
+      try {
+        // If it's a string, try to require it.
+        contents = require(fp);
+      } catch(e) {
+        // If it can't be required, try to read it.
+        contents = file.readDataSync(fp);
+      }
+      if(opts.namespace) {
+        // Extend the data into an object named for the file.
+        opts.data[name] = _.cloneDeep(_.extend(opts.data, contents));
+      } else if(opts.namespace === 'only') {
+        opts.data[name] = _.cloneDeep(_.extend({}, opts.data, contents));
       } else {
-        obj = _.extend(obj, file.readDataSync(fp));
+        opts.data = _.extend(opts.data, contents);
       }
     }
   });
-  return obj;
+  return opts.data;
 };
-
 
 file.getStatsSync = function (filepath) {
   try {
@@ -341,6 +385,13 @@ file.getStats = function (filepath, callback) {
     err.message = 'Failed to retrieve "' + filepath + '" stats: ' + err.message;
     return callback(err, null);
   }
+};
+
+// Retrieve a specific file using globbing patterns. If
+// multiple matches are found, only the first is returned
+file.getFile = function(filepath, options) {
+  var str = glob.find(filepath, options)[0];
+  return str ? String(str) : null;
 };
 
 /**
@@ -450,12 +501,16 @@ file.writeDataSync = function(dest, content, options) {
  * Copy
  */
 
-// Copy files synchronously from a to b.
+// Copy files synchronously and process any templates within
 file.copyFileSync = function (src, dest, options) {
-  options = options || {};
+  var opts = _.extend({}, {process: true}, options || {});
   src = file.readFileSync(src);
-  file.writeFileSync(dest, src, options);
+  if(opts.process === true) {
+    src = template.process(src, opts.data, opts);
+  }
+  file.writeFileSync(dest, src, opts);
 };
+
 
 
 /**
@@ -621,23 +676,3 @@ file.isPathInCwd = function() {
     return false;
   }
 };
-
-
-
-// Retrieve a specific file using globbing patterns. If
-// multiple matches are found, only the first is returned
-file.getFile = function(filepath, options) {
-  var str = glob.find(filepath, options)[0];
-  return str ? String(str) : null;
-};
-
-
-
-// @private
-// List out functions
-function fn(src) {
-  return src.match(/^file\.(.+) =/gim).map(function(match) {
-    return match.replace(/(file\.| =)/g, '');
-  });
-};
-// file.writeDataSync('tmp/fn.json', fn(file.readFileSync(__filename)));

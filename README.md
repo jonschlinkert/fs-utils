@@ -1,6 +1,6 @@
 # fs-utils [![NPM version](https://badge.fury.io/js/fs-utils.png)](http://badge.fury.io/js/fs-utils)
 
-> File system utils for Node.js projects.
+> File system extras and utilities to extend the Node.js fs module.
 
 ```bash
 npm i fs-utils --save
