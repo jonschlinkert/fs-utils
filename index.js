@@ -353,10 +353,10 @@ file.expandDataFiles = function (filepath, options) {
         // If it's a string, try to require it.
         contents = require(fp);
       } catch(e) {
-        // If it can't be required, try to read it.
+        // If it can't be required, try to read it directly.
         contents = file.readDataSync(fp);
       }
-      if(opts.namespace) {
+      if(opts.namespace === true) {
         // Extend the data into an object named for the file.
         opts.data[name] = _.cloneDeep(_.extend(opts.data, contents));
       } else if(opts.namespace === 'only') {

@@ -1,6 +1,6 @@
 {
   "name": "fs-utils",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "File system extras and utilities to extend the Node.js fs module.",
   "repository": {
     "type": "git",
