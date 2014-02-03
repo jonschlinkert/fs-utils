@@ -38,6 +38,7 @@ var deprecatedPathFunctions = [
   'lastExt',
   'hasExt',
   'endsWith',
+  'containsExt',
   'withExt',
   'addTrailingSlash',
   'removeTrailingSlash',
