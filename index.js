@@ -22,6 +22,9 @@ var _      = require('lodash');
 // Export the `file` object
 var file = module.exports = {};
 
+// EOL to use based on the operating system
+file.eol = process.platform === 'win32' ? '\r\n' : '\n';
+
 // Build regex based on os EOL
 file.EOLre = new RegExp(os.EOL, 'g');
 
@@ -226,6 +229,10 @@ file.withExt = function (filepath, ext) {
   return list;
 };
 
+var endsWithExt = function(str, ext) {
+  return str.match(new RegExp('.+\.' + ext + '$', 'g'));
+};
+
 
 // Returns true if the filepath ends with the suffix
 file.endsWith = function(filepath, suffix) {
@@ -251,6 +258,11 @@ file.removeTrailingSlash = function () {
   var filepath = path.join.apply(path, arguments);
   var sep = new RegExp(file.escapeRegex(path.sep) + '+$');
   return filepath.replace(sep, '');
+};
+
+// Returns true if the filepath contains the given string
+file.contains = function(filepath, str){
+ return filepath.indexOf(str) !== -1;
 };
 
 
@@ -435,6 +447,15 @@ file.mkdirp = function (dir) {
 };
 file.mkdirpSync = function (dir) {
   require('mkdirp').sync(dir);
+};
+
+
+/**
+ * Rename
+ */
+
+file.rename = function(dest, src) {
+  return path.join(path.dirname(dest) || '', path.basename(src));
 };
 
 

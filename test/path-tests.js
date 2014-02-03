@@ -1,11 +1,7 @@
 /**
- * Assemble
- *
- * Assemble <http://assemble.io>
- * Created and maintained by Jon Schlinkert and Brian Woodward
- *
- * Copyright (c) 2014 Upstage.
- * Licensed under the MIT License (MIT).
+ * fs-utils
+ * Copyright (c) 2014 Jon Schlinkert, Brian Woodward, contributors.
+ * Licensed under the MIT license.
  */
 
 var expect = require('chai').expect;
