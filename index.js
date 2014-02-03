@@ -20,6 +20,7 @@ var YAML   = require('js-yaml');
 var _      = require('lodash');
 
 var deprecatedPathFunctions = [
+  'escapeRegex',
   'normalizeSlash',
   'cwd',
   'setCWD',
@@ -48,6 +49,9 @@ var deprecatedPathFunctions = [
   'doesPathContain',
   'isPathCwd',
   'isPathInCwd',
+
+  'isDir',
+  'isFile'
 ];
 
 
