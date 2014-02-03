@@ -7,23 +7,25 @@
 'use strict';
 
 // Node.js
-var path = require('path');
 var fs   = require('graceful-fs');
+var path = require('path');
 var os   = require('os');
 
 // node_modules
-var async  = require('async');
-var rimraf = require('rimraf');
-var glob   = require('globule');
-var YAML   = require('js-yaml');
-var _      = require('lodash');
+var pathUtils = require('path-utils');
+var async     = require('async');
+var rimraf    = require('rimraf');
+var glob      = require('globule');
+var YAML      = require('js-yaml');
+var _         = require('lodash');
 
+  'escapeRegex',
+
+  'isDir',
+  'isFile'
 
 // Export the `file` object
 var file = module.exports = {};
-
-// EOL to use based on the operating system
-file.eol = process.platform === 'win32' ? '\r\n' : '\n';
 
 // Build regex based on os EOL
 file.EOLre = new RegExp(os.EOL, 'g');
@@ -38,19 +40,8 @@ file.normalizeNL = function(str) {
   return str.replace(/\r\n|\n/g, '\n');
 };
 
-file.escapeRegex = function(re) {
-  return re.replace(/(.)/g, '\\$1');
-};
-
 file.arrayify = function(val) {
   return !Array.isArray(val) ? [val] : val;
-};
-
-
-// Normalize paths to use `/`
-file.pathSepRegex = /[\/\\]/g;
-file.normalizeSlash = function(str) {
-  return str.replace(file.pathSepRegex, '/');
 };
 
 
@@ -71,200 +62,6 @@ file.stripBOM = function(str) {
   }
   return contents;
 };
-
-/**
- * CWD
- */
-
-// Normalized path to the CWD
-// @example: file.cwd('foo')
-file.cwd = function() {
-  var filepath = path.join.apply(path, arguments);
-  return file.normalizeSlash(path.join(process.cwd(), filepath));
-};
-
-// Change the current working directory (CWD)
-file.setCWD = function() {
-  var filepath = path.join.apply(path, arguments);
-  process.chdir(filepath);
-};
-
-
-/**
- * Path
- */
-
-// The last segment of a filepath
-file.lastSegment = function() {
-  var filepath = path.join.apply(path, arguments);
-  return _.compact(filepath.split(path.sep)).pop();
-};
-
-// The last segment of a filepath
-file.firstSegment = function() {
-  var filepath = path.join.apply(path, arguments);
-  return _.compact(filepath.split(path.sep)).slice(0, 1)[0];
-};
-file.firstDir = file.firstSegment;
-
-// Directory path
-file.dirname = function() {
-  var filepath = path.join.apply(path, arguments).split(path.sep);
-  var dirlen = filepath.length - 1;
-  var dir = file.normalizeSlash(filepath.splice(0, dirlen).join(path.sep));
-  return file.addTrailingSlash(dir);
-};
-
-// Directory path
-file.dir = function() {
-  var filepath = path.join.apply(path, arguments);
-  if(file.endsWith(filepath, path.extname(filepath))) {
-    filepath = file.removeFilename(filepath);
-    return filepath;
-  }
-  return filepath;
-};
-
-// Last dictory path segment, excluding the filename
-file.lastDir = function() {
-  var filepath = path.join.apply(path, arguments);
-  if(file.hasExt(file.lastSegment(filepath))) {
-    filepath = file.removeFilename(filepath);
-  }
-  var segments = file.dir(filepath).split(path.sep);
-  // return _.compact(segments).splice(-1,1)[0];
-  return _.compact(segments).pop();
-};
-
-// The last character in a filepath. 'foo/bar/baz/' => '/'
-file.lastChar = function(filepath) {
-  return _.toArray(filepath).pop();
-};
-
-// Returns a filename
-file.filename = function() {
-  var filepath = path.join.apply(path, arguments);
-  var re = /[\w.-]+$/;
-  try {
-    var foo = re.exec(filepath)[0];
-    return foo;
-  } catch(e) {
-    return '';
-  }
-};
-
-file.getFilename = function() {
-  var filepath = path.join.apply(path, arguments);
-  return filepath.split(path.sep).pop().split('/').pop();
-};
-
-// Strip the filename from a file path
-file.removeFilename = function() {
-  var filepath = path.join.apply(path, arguments);
-  if(file.hasExt(file.lastSegment(filepath))) {
-    filepath = filepath.replace(/[^\/|\\]*$/, '');
-  }
-  return filepath;
-};
-
-// Filename without extension
-file.basename = function() {
-  var filepath = path.join.apply(path, arguments);
-  return path.basename(filepath, path.extname(filepath));
-};
-
-// Filename without extension. Differs slightly from basename
-file.base = function() {
-  var filepath = path.join.apply(path, arguments);
-  var name = path.basename(filepath, path.extname(filepath));
-  return name.split('.')[0];
-};
-// Alias
-file.name = file.base;
-
-// File extension without the dot
-file.ext = function() {
-  var filepath = path.join.apply(path, arguments);
-  return path.extname(filepath).replace(/\./, '');
-};
-
-// Get the _last_ file extension.
-// @example 'foo/bar/file.tmpl.md' => 'md'
-file.lastExt = function() {
-  var filepath = path.join.apply(path, arguments);
-  var sep = file.escapeRegex(path.sep);
-  var ext = new RegExp('^.*?\\.([^.|' + sep + ']*)$', 'g');
-  var segments = ext.exec(filepath);
-  return segments && segments[1].length > 0 ? segments[1] : '';
-};
-
-// Returns true if the filepath ends in a file with an extension
-file.hasExt = function() {
-  var filepath = path.join.apply(path, arguments);
-  var last = file.lastSegment(filepath);
-  return /\./.test(last);
-};
-
-// Returns true if the filepath has one of the given extensions
-file.containsExt = function(filepath, ext) {
-  ext = file.arrayify(ext);
-  if(ext.length > 1) {
-    ext = '?:' + ext.join('|');
-  } else {
-    ext = ext.join('');
-  }
-  return new RegExp('\\.('+ext+')$').test(filepath);
-};
-
-
-// Return a list of files with the given extension.
-file.withExt = function (filepath, ext) {
-  var files = fs.readdirSync(filepath);
-  var list = [];
-  files.forEach(function (filename) {
-    if (file.containsExt(filename, ext)) {
-      list.push(filename);
-    }
-  });
-  return list;
-};
-
-var endsWithExt = function(str, ext) {
-  return str.match(new RegExp('.+\.' + ext + '$', 'g'));
-};
-
-
-// Returns true if the filepath ends with the suffix
-file.endsWith = function(filepath, suffix) {
-  filepath = path.normalize(filepath);
-  suffix = path.normalize(suffix);
-  return filepath.indexOf(suffix, filepath.length - suffix.length) !== -1;
-};
-
-
-// Add a trailing slash to the file path
-file.addTrailingSlash = function () {
-  var filepath = path.join.apply(path, arguments);
-  if (filepath.charAt(filepath.length - 1) !== path.sep) {
-    if(!file.hasExt(filepath) && !file.isFile(filepath)) {
-      filepath += path.sep;
-    }
-  }
-  return filepath;
-};
-
-// Remove the trailing slash from a file path
-file.removeTrailingSlash = function () {
-  var filepath = path.join.apply(path, arguments);
-  var sep = new RegExp(file.escapeRegex(path.sep) + '+$');
-  return filepath.replace(sep, '');
-};
-
-// Returns true if the filepath contains the given string
-file.contains = function(filepath, str){
- return filepath.indexOf(str) !== -1;
-};
-
 
 /**
  * Read Files
@@ -451,15 +248,6 @@ file.mkdirpSync = function (dir) {
 
 
 /**
- * Rename
- */
-
-file.rename = function(dest, src) {
-  return path.join(path.dirname(dest) || '', path.basename(src));
-};
-
-
-/**
  * Write
  */
 
@@ -572,10 +360,10 @@ file.delete = function(filepath, options) {
   }
   // Only delete cwd or outside cwd if --force enabled. Be careful, people!
   if (!options.force) {
-    if (file.isPathCwd(filepath)) {
+    if (pathUtils.isPathCwd(filepath)) {
       console.warn('Cannot delete the current working directory.');
       return false;
-    } else if (!file.isPathInCwd(filepath)) {
+    } else if (!pathUtils.isPathInCwd(filepath)) {
       console.warn('Cannot delete files outside the current working directory.');
       return false;
     }
@@ -620,20 +408,6 @@ file.exists = function() {
   return fs.existsSync(filepath);
 };
 
-// Is the path a directory?
-file.isDir = function() {
-  var filepath = path.join.apply(path, arguments);
-  if (!file.exists(filepath)) {return false;}
-  return fs.statSync(filepath).isDirectory();
-};
-
-// Is the path a file?
-file.isFile = function() {
-  var filepath = path.join.apply(path, arguments);
-  if (!file.exists(filepath)) {return false;}
-  return fs.statSync(filepath).isFile();
-};
-
 // If the file actually exists, does it have any content?
 file.isEmptyFile = function() {
   var filepath = path.join.apply(path, arguments);
@@ -642,58 +416,3 @@ file.isEmptyFile = function() {
   return (filepath.length === 0 || filepath === '') ? true : false;
 };
 
-// The following functions are sourced from grunt.file
-// https://github.com/gruntjs/grunt/blob/master/lib/grunt/file.js
-// https://github.com/gruntjs/grunt/blob/master/LICENSE-MIT
-// - isPathAbsolute
-// - arePathsEquivalent
-// - doesPathContain
-// - isPathCwd
-// - isPathInCwd
-
-// Is the path absolute?
-file.isPathAbsolute = function () {
-  filepath = path.join.apply(path, arguments);
-  return path.resolve(filepath) === file.removeTrailingSlash(filepath);
-};
-
-// Do all the specified paths refer to the same path?
-file.arePathsEquivalent = function(first) {
-  first = path.resolve(first);
-  for (var i = 1; i < arguments.length; i++) {
-    if (first !== path.resolve(arguments[i])) { return false; }
-  }
-  return true;
-};
-
-// Are descendant path(s) contained within ancestor path? Note: does not test
-// if paths actually exist.
-file.doesPathContain = function(ancestor) {
-  ancestor = path.resolve(ancestor);
-  var relative;
-  for (var i = 1; i < arguments.length; i++) {
-    relative = path.relative(path.resolve(arguments[i]), ancestor);
-    if (relative === '' || /\w+/.test(relative)) { return false; }
-  }
-  return true;
-};
-
-// Test to see if a filepath is the CWD.
-file.isPathCwd = function() {
-  var filepath = path.join.apply(path, arguments);
-  try {
-    return file.arePathsEquivalent(process.cwd(), fs.realpathSync(filepath));
-  } catch(e) {
-    return false;
-  }
-};
-
-// Test to see if a filepath is contained within the CWD.
-file.isPathInCwd = function() {
-  var filepath = path.join.apply(path, arguments);
-  try {
-    return file.doesPathContain(process.cwd(), fs.realpathSync(filepath));
-  } catch(e) {
-    return false;
-  }
-};
