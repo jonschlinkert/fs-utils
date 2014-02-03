@@ -7,9 +7,10 @@
 'use strict';
 
 // Node.js
-var path = require('path');
-var fs   = require('graceful-fs');
-var os   = require('os');
+var deprecate = require('util').deprecate;
+var fs        = require('graceful-fs');
+var path      = require('path');
+var os        = require('os');
 
 // node_modules
 var async  = require('async');
@@ -17,6 +18,36 @@ var rimraf = require('rimraf');
 var glob   = require('globule');
 var YAML   = require('js-yaml');
 var _      = require('lodash');
+
+var deprecatedPathFunctions = [
+  'normalizeSlash',
+  'cwd',
+  'setCWD',
+  'lastSegment',
+  'firstSegment',
+  'dirname',
+  'dir',
+  'lastDir',
+  'lastChar',
+  'filename',
+  'getFilename',
+  'removeFilename',
+  'basename',
+  'base',
+  'ext',
+  'lastExt',
+  'hasExt',
+  'endsWith',
+  'withExt',
+  'addTrailingSlash',
+  'removeTrailingSlash',
+
+  'isPathAbsolute',
+  'arePathsEquivalent',
+  'doesPathContain',
+  'isPathCwd',
+  'isPathInCwd',
+];
 
 
 // Export the `file` object
@@ -676,3 +707,10 @@ file.isPathInCwd = function() {
     return false;
   }
 };
+
+
+// deprecate the functions listed in the deprecatedPathFunctions array
+_.forOwn(_.pick(file, deprecatedPathFunctions), function (fn, key) {
+  var msg = _.template("<%= key %> has been deprecated and moved to path-utils.", { key: key });
+  file[key] = deprecate(fn, msg);
+});
