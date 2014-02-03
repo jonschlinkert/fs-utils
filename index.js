@@ -12,40 +12,12 @@ var path = require('path');
 var os   = require('os');
 
 // node_modules
-//var pathUtils = require('path-utils');
+var pathUtils = require('path-utils');
 var async     = require('async');
 var rimraf    = require('rimraf');
 var glob      = require('globule');
 var YAML      = require('js-yaml');
 var _         = require('lodash');
-
-var deprecatedPathFunctions = [
-  'lastSegment',
-  'firstSegment',
-  'dirname',
-  'dir',
-  'lastDir',
-  'lastChar',
-  'filename',
-  'getFilename',
-  'removeFilename',
-  'basename',
-  'base',
-  'ext',
-  'lastExt',
-  'hasExt',
-  'endsWith',
-  'containsExt',
-  'withExt',
-  'addTrailingSlash',
-  'removeTrailingSlash',
-
-  'isPathAbsolute',
-  'arePathsEquivalent',
-  'doesPathContain',
-  'isPathCwd',
-  'isPathInCwd',
-];
 
 
 // Export the `file` object
@@ -62,10 +34,6 @@ file.normalizeEOL = function(str) {
 // Normalize to newlines
 file.normalizeNL = function(str) {
   return str.replace(/\r\n|\n/g, '\n');
-};
-
-file.escapeRegex = function(re) {
-  return re.replace(/(.)/g, '\\$1');
 };
 
 file.arrayify = function(val) {
@@ -388,10 +356,10 @@ file.delete = function(filepath, options) {
   }
   // Only delete cwd or outside cwd if --force enabled. Be careful, people!
   if (!options.force) {
-    if (file.isPathCwd(filepath)) {
+    if (pathUtils.isPathCwd(filepath)) {
       console.warn('Cannot delete the current working directory.');
       return false;
-    } else if (!file.isPathInCwd(filepath)) {
+    } else if (!pathUtils.isPathInCwd(filepath)) {
       console.warn('Cannot delete files outside the current working directory.');
       return false;
     }
@@ -434,20 +402,6 @@ file.rmdir = function (dirpath, callback) {
 file.exists = function() {
   var filepath = path.join.apply(path, arguments);
   return fs.existsSync(filepath);
-};
-
-// Is the path a directory?
-file.isDir = function() {
-  var filepath = path.join.apply(path, arguments);
-  if (!file.exists(filepath)) {return false;}
-  return fs.statSync(filepath).isDirectory();
-};
-
-// Is the path a file?
-file.isFile = function() {
-  var filepath = path.join.apply(path, arguments);
-  if (!file.exists(filepath)) {return false;}
-  return fs.statSync(filepath).isFile();
 };
 
 // If the file actually exists, does it have any content?
