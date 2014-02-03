@@ -19,10 +19,6 @@ var glob      = require('globule');
 var YAML      = require('js-yaml');
 var _         = require('lodash');
 
-  'escapeRegex',
-
-  'isDir',
-  'isFile'
 
 // Export the `file` object
 var file = module.exports = {};
