@@ -12,17 +12,12 @@ var path = require('path');
 var os   = require('os');
 
 // node_modules
-var pathUtils = require('path-utils');
+var paths = require('path-utils');
 var async     = require('async');
 var rimraf    = require('rimraf');
 var glob      = require('globule');
 var YAML      = require('js-yaml');
 var _         = require('lodash');
-
-  'escapeRegex',
-
-  'isDir',
-  'isFile'
 
 // Export the `file` object
 var file = module.exports = {};
@@ -154,7 +149,7 @@ file.expandDataFiles = function (filepath, options) {
   var contents;
 
   glob.find(filepath, opts).map(function (fp) {
-    var name = file.basename(fp);
+    var name = paths.basename(fp);
     if (file.isEmptyFile(fp)) {
       if(opts.verbose) {console.warn('Skipping empty file:'.yellow, fp);}
     } else {
@@ -360,10 +355,10 @@ file.delete = function(filepath, options) {
   }
   // Only delete cwd or outside cwd if --force enabled. Be careful, people!
   if (!options.force) {
-    if (pathUtils.isPathCwd(filepath)) {
+    if (paths.isPathCwd(filepath)) {
       console.warn('Cannot delete the current working directory.');
       return false;
-    } else if (!pathUtils.isPathInCwd(filepath)) {
+    } else if (!paths.isPathInCwd(filepath)) {
       console.warn('Cannot delete files outside the current working directory.');
       return false;
     }
