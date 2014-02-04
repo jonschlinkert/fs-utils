@@ -7,67 +7,72 @@
 'use strict';
 
 // Node.js
-var fs   = require('graceful-fs');
-var path = require('path');
-var os   = require('os');
+var fs     = require('graceful-fs');
+var path   = require('path');
+var os     = require('os');
 
 // node_modules
-var paths = require('path-utils');
-var async     = require('async');
-var rimraf    = require('rimraf');
-var glob      = require('globule');
-var YAML      = require('js-yaml');
-var _         = require('lodash');
+var paths  = require('path-utils');
+var async  = require('async');
+var rimraf = require('rimraf');
+var glob   = require('globule');
+var YAML   = require('js-yaml');
+var _      = require('lodash');
 
-// Export the `file` object
-var file = module.exports = {};
+
+/**
+ * File utils
+ */
+
+// Export the `_fs` object
+var _fs = module.exports = {};
 
 // Build regex based on os EOL
-file.EOLre = new RegExp(os.EOL, 'g');
+_fs.EOLre = new RegExp(os.EOL, 'g');
 
 // Normalize line endings
-file.normalizeEOL = function(str) {
+_fs.normalizeEOL = function(str) {
   return str.replace(/\r\n|\n/g, os.EOL);
 };
 
 // Normalize to newlines
-file.normalizeNL = function(str) {
+_fs.normalizeNL = function(str) {
   return str.replace(/\r\n|\n/g, '\n');
 };
 
-file.arrayify = function(val) {
+_fs.arrayify = function(val) {
   return !Array.isArray(val) ? [val] : val;
 };
 
-
 // Default encoding
-file.encoding = function(options) {
+_fs.encoding = function(options) {
   options = options || {};
   return options.encoding || 'utf8';
 };
 
-file.preserveBOM = false;
-file.stripBOM = function(str) {
+_fs.preserveBOM = false;
+_fs.stripBOM = function(str) {
   // Transform EOL
-  var contents = (os.EOL === '\n') ? str : str.replace(file.EOLre, '\n');
+  var contents = (os.EOL === '\n') ? str : str.replace(_fs.EOLre, '\n');
   // Strip UTF BOM
-  if (!file.preserveBOM && contents.charCodeAt(0) === 0xFEFF) {
+  if (!_fs.preserveBOM && contents.charCodeAt(0) === 0xFEFF) {
     contents = contents.substring(1);
     contents = contents.replace(/^\uFEFF/, '');
   }
   return contents;
 };
 
+
 /**
- * Read Files
+ * Read
  */
 
 // Read file synchronously
-file.readFileSync = function(filepath, options) {
+_fs.readFileSync = function(filepath, options) {
   options = options || {};
-  var buffer = fs.readFileSync(String(filepath), file.encoding(options));
+  var buffer = fs.readFileSync(String(filepath), _fs.encoding(options));
   try {
-    return file.stripBOM(buffer);
+    return _fs.stripBOM(buffer);
   } catch (err) {
     err.message = 'Failed to read "' + filepath + '": ' + err.message;
     throw err;
@@ -75,8 +80,8 @@ file.readFileSync = function(filepath, options) {
 };
 
 // Read JSON file synchronously and parse content as JSON
-file.readJSONSync = function(filepath) {
-  var buffer = file.readFileSync(filepath);
+_fs.readJSONSync = function(filepath) {
+  var buffer = _fs.readFileSync(filepath);
   try {
     return JSON.parse(buffer);
   } catch (err) {
@@ -86,8 +91,8 @@ file.readJSONSync = function(filepath) {
 };
 
 // Read YAML file synchronously and parse content as JSON
-file.readYAMLSync = function(filepath) {
-  var buffer = file.readFileSync(filepath);
+_fs.readYAMLSync = function(filepath) {
+  var buffer = _fs.readFileSync(filepath);
   try {
     return YAML.load(buffer);
   } catch (err) {
@@ -96,46 +101,46 @@ file.readYAMLSync = function(filepath) {
   }
 };
 
-
-// Read optional JSON. Ben Alman, https://gist.github.com/2876125
-file.readOptionalJSON = function(filepath) {
+// Read optional JSON
+// Ben Alman, https://gist.github.com/2876125
+_fs.readOptionalJSON = function(filepath) {
   var buffer = {};
   try {
-    buffer = file.readJSONSync(filepath);
+    buffer = _fs.readJSONSync(filepath);
   } catch (e) {}
   return buffer;
 };
 
-file.readOptionalYAML = function(filepath) {
+_fs.readOptionalYAML = function(filepath) {
   var buffer = {};
   try {
-    buffer = file.readYAMLSync(filepath);
+    buffer = _fs.readYAMLSync(filepath);
   } catch (e) {}
   return buffer;
 };
 
-
-/**
- * Data file reader factory
- * Automatically determines the reader based on extension.
- * Use instead of grunt.file.readJSON or grunt.file.readYAML
- */
-file.readDataSync = function(filepath, options) {
+// Determine the reader based on extension.
+_fs.readDataSync = function(filepath, options) {
   options = options || {};
   var ext = path.extname(filepath);
-  var reader = file.readJSONSync;
+  var reader = _fs.readJSONSync;
   switch(ext) {
     case '.json':
-      reader = file.readJSONSync;
+      reader = _fs.readJSONSync;
       break;
     case '.yml':
     case '.yaml':
-      reader = file.readYAMLSync;
+      reader = _fs.readYAMLSync;
       break;
   }
   return reader(filepath, options);
 };
 
+
+
+/**
+ * Expand (glob / minimatch)
+ */
 
 /**
  * @param  {String} filepath The filepath to read or string pattern to expand then read
@@ -143,14 +148,14 @@ file.readDataSync = function(filepath, options) {
  *                           the source file as the name of the returned object
  * @return {Object}          Object of metadata
  */
-file.expandDataFiles = function (filepath, options) {
+_fs.expandDataFiles = function (filepath, options) {
   var opts = _.extend({}, options);
   opts.data = opts.data || {};
   var contents;
 
   glob.find(filepath, opts).map(function (fp) {
     var name = paths.basename(fp);
-    if (file.isEmptyFile(fp)) {
+    if (_fs.isEmptyFile(fp)) {
       if(opts.verbose) {console.warn('Skipping empty file:'.yellow, fp);}
     } else {
       try {
@@ -158,10 +163,10 @@ file.expandDataFiles = function (filepath, options) {
         contents = require(fp);
       } catch(e) {
         // If it can't be required, try to read it directly.
-        contents = file.readDataSync(fp);
+        contents = _fs.readDataSync(fp);
       }
       if(opts.namespace === true) {
-        // Extend the data into an object named for the file.
+        // Extend the data into an object named for the _fs.
         opts.data[name] = _.cloneDeep(_.extend(opts.data, contents));
       } else if(opts.namespace === 'only') {
         opts.data[name] = _.cloneDeep(_.extend({}, opts.data, contents));
@@ -173,7 +178,13 @@ file.expandDataFiles = function (filepath, options) {
   return opts.data;
 };
 
-file.getStatsSync = function (filepath) {
+
+
+/**
+ * fs stats
+ */
+
+_fs.getStatsSync = function (filepath) {
   try {
     return fs.statSync(filepath);
   } catch (err) {
@@ -182,7 +193,7 @@ file.getStatsSync = function (filepath) {
   }
 };
 
-file.getStats = function (filepath, callback) {
+_fs.getStats = function (filepath, callback) {
   try {
     return fs.stat(filepath, callback);
   } catch (err) {
@@ -193,22 +204,24 @@ file.getStats = function (filepath, callback) {
 
 // Retrieve a specific file using globbing patterns. If
 // multiple matches are found, only the first is returned
-file.getFile = function(filepath, options) {
+_fs.getFile = function(filepath, options) {
   var str = glob.find(filepath, options)[0];
   return str ? String(str) : null;
 };
+
+
 
 /**
  * Make directories
  */
 
-file.mkdir = function (dest, callback) {
+_fs.mkdir = function (dest, callback) {
   var destpath = path.dirname(dest);
   fs.exists(destpath, function (exist) {
     if (exist) {
       fs.mkdir(dest, callback);
     } else {
-      file.mkdir(destpath, function () {
+      _fs.mkdir(destpath, function () {
         fs.mkdir(dest, callback);
       });
     }
@@ -217,14 +230,14 @@ file.mkdir = function (dest, callback) {
 
 // Make any directories and intermediate directories that
 // don't already exist
-file.mkdirSync = function (dirpath, mode) {
+_fs.mkdirSync = function (dirpath, mode) {
   mode = mode || parseInt('0777', 8) & (~process.umask());
   if (!fs.existsSync(dirpath)) {
     var parentDir = path.dirname(dirpath);
     if (fs.existsSync(parentDir)) {
       fs.mkdirSync(dirpath, mode);
     } else {
-      file.mkdirSync(parentDir);
+      _fs.mkdirSync(parentDir);
       fs.mkdirSync(dirpath, mode);
     }
   }
@@ -232,27 +245,28 @@ file.mkdirSync = function (dirpath, mode) {
 
 // Testing out the `mkdirp` lib as an alternative to
 // built-in mkdir functions.
-file.mkdirp = function (dir) {
+_fs.mkdirp = function (dir) {
   require('mkdirp')(dir, function (err) {
     if (err) {console.error(err); }
   });
 };
-file.mkdirpSync = function (dir) {
+_fs.mkdirpSync = function (dir) {
   require('mkdirp').sync(dir);
 };
+
 
 
 /**
  * Write
  */
 
-file.writeFile = function (dest, content, callback) {
+_fs.writeFile = function (dest, content, callback) {
   var destpath = path.dirname(dest);
   fs.exists(destpath, function (exists) {
     if (exists) {
       fs.writeFile(dest, content, callback);
     } else {
-      file.mkdir(destpath, function () {
+      _fs.mkdir(destpath, function () {
         fs.writeFile(dest, content, callback);
       });
     }
@@ -260,45 +274,46 @@ file.writeFile = function (dest, content, callback) {
 };
 
 // Write files to disk, synchronously
-file.writeFileSync = function(dest, content, options) {
+_fs.writeFileSync = function(dest, content, options) {
   options = options || {};
   var dirpath = path.dirname(dest);
-  if (!file.exists(dirpath)) {
-    file.mkdirSync(dirpath);
+  if (!_fs.exists(dirpath)) {
+    _fs.mkdirSync(dirpath);
   }
-  fs.writeFileSync(dest, content, file.encoding(options));
+  fs.writeFileSync(dest, content, _fs.encoding(options));
 };
 
-file.writeJSONSync = function(dest, content, options) {
+_fs.writeJSONSync = function(dest, content, options) {
   options = options || {};
   options.indent = options.indent || 2;
   content = JSON.stringify(content, null, options.indent);
-  file.writeFileSync(dest, content);
+  _fs.writeFileSync(dest, content);
 };
 
-file.writeYAMLSync = function(dest, content, options) {
+_fs.writeYAMLSync = function(dest, content, options) {
   options = options || {};
   options.indent = options.indent || 2;
   content = YAML.dump(content, null, options.indent);
-  file.writeFileSync(dest, content);
+  _fs.writeFileSync(dest, content);
 };
 
-// @example: file.writeDataSync('foo.yaml', {name: "Foo"});
-file.writeDataSync = function(dest, content, options) {
+// @example: _fs.writeDataSync('foo.yml', {foo: "bar"});
+_fs.writeDataSync = function(dest, content, options) {
   options = options || {};
   var ext = options.ext || path.extname(dest);
-  var writer = file.writeJSONSync;
+  var writer = _fs.writeJSONSync;
   switch(ext) {
     case '.json':
-      writer = file.writeJSONSync;
+      writer = _fs.writeJSONSync;
       break;
     case '.yml':
     case '.yaml':
-      writer = file.writeYAMLSync;
+      writer = _fs.writeYAMLSync;
       break;
   }
   return writer(dest, content, options);
 };
+
 
 
 /**
@@ -306,13 +321,13 @@ file.writeDataSync = function(dest, content, options) {
  */
 
 // Copy files synchronously and process any templates within
-file.copyFileSync = function (src, dest, options) {
+_fs.copyFileSync = function (src, dest, options) {
   var opts = _.extend({}, {process: true}, options || {});
-  src = file.readFileSync(src);
+  src = _fs.readFileSync(src);
   if(opts.process === true) {
     src = template.process(src, opts.data, opts);
   }
-  file.writeFileSync(dest, src, opts);
+  _fs.writeFileSync(dest, src, opts);
 };
 
 
@@ -322,7 +337,7 @@ file.copyFileSync = function (src, dest, options) {
  */
 
 // Remove any directories and child directories that exist
-file.rmdirSync = function () {
+_fs.rmdirSync = function () {
   var dirpath = path.join.apply(path, arguments);
   if (fs.existsSync(dirpath)) {
     var files = fs.readdirSync(dirpath);
@@ -331,7 +346,7 @@ file.rmdirSync = function () {
       if (filepath === "." || filepath === "..") {
         continue;
       } else if (fs.statSync(filepath).isDirectory()) {
-        file.rmdirSync(filepath);
+        _fs.rmdirSync(filepath);
       } else {
         fs.unlinkSync(filepath);
       }
@@ -340,16 +355,16 @@ file.rmdirSync = function () {
   }
 };
 
-// file.delete was sourced and modified from grunt.file
+// _fs.delete was sourced and modified from grunt.file
 // https://github.com/gruntjs/grunt/blob/master/lib/grunt/file.js
 // https://github.com/gruntjs/grunt/blob/master/LICENSE-MIT
 //
 // Delete folders and files recursively
-file.delete = function(filepath, options) {
+_fs.delete = function(filepath, options) {
   filepath = String(filepath);
   options = options || {};
 
-  if (!file.exists(filepath)) {
+  if (!_fs.exists(filepath)) {
     console.warn('Cannot delete nonexistent file.');
     return false;
   }
@@ -372,7 +387,7 @@ file.delete = function(filepath, options) {
   }
 };
 
-file.rmdir = function (dirpath, callback) {
+_fs.rmdir = function (dirpath, callback) {
   if (!_.isFunction(callback)) {callback = function () {};}
   fs.readdir(dirpath, function (err, files) {
     if (err) {return callback(err);}
@@ -398,16 +413,29 @@ file.rmdir = function (dirpath, callback) {
  */
 
 // Does the filepath actually exist?
-file.exists = function() {
+_fs.exists = function() {
   var filepath = path.join.apply(path, arguments);
   return fs.existsSync(filepath);
 };
 
 // If the file actually exists, does it have any content?
-file.isEmptyFile = function() {
+_fs.isEmptyFile = function() {
   var filepath = path.join.apply(path, arguments);
-  if (!file.exists(filepath)) {return false;}
-  filepath = file.readFileSync(filepath);
+  if (!_fs.exists(filepath)) {return false;}
+  filepath = _fs.readFileSync(filepath);
   return (filepath.length === 0 || filepath === '') ? true : false;
 };
 
+// Is the path a directory?
+_fs.isDir = function() {
+  var filepath = path.join.apply(path, arguments);
+  if (!fs.existsSync(filepath)) {return false;}
+  return fs.statSync(filepath).isDirectory();
+};
+
+// Is the path a file?
+_fs.isFile = function() {
+  var filepath = path.join.apply(path, arguments);
+  if (!fs.existsSync(filepath)) {return false;}
+  return fs.statSync(filepath).isFile();
+};
