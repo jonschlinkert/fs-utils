@@ -5,7 +5,6 @@
  */
 
 var expect = require('chai').expect;
-var pathUtils = require('path-utils');
 var path = require('path');
 var file = require('../');
 var cwd = process.cwd();
@@ -43,33 +42,33 @@ describe('file system methods', function () {
 
   it('should return true if a path is a real file', function() {
     var expected = true;
-    var actual = pathUtils.isFile('package.json');
+    var actual = file.isFile('package.json');
     expect(actual).to.eql(expected);
 
     expected = true;
-    actual = pathUtils.isFile('README.md');
+    actual = file.isFile('README.md');
     expect(actual).to.eql(expected);
   });
 
   it('should return false if a path is not a real file', function() {
     var expected = false;
-    var actual = pathUtils.isFile('test');
+    var actual = file.isFile('test');
     expect(actual).to.eql(expected);
   });
 
   it('should return true if a path is a real directory', function() {
     var expected = true;
-    var actual = pathUtils.isDir('test');
+    var actual = file.isDir('test');
     expect(actual).to.eql(expected);
   });
 
   it('should return false if a path is not a real directory', function() {
     var expected = false;
-    var actual = pathUtils.isDir('package.json');
+    var actual = file.isDir('package.json');
     expect(actual).to.eql(expected);
 
     expected = false;
-    actual = pathUtils.isDir('README.md');
+    actual = file.isDir('README.md');
     expect(actual).to.eql(expected);
   });
 
