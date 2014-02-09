@@ -216,15 +216,15 @@ file.readOptionalYAML = function(filepath) {
 
 // Determine the reader based on extension.
 file.readDataSync = function(filepath, options) {
-  options = options || {};
-  var ext = path.extname(filepath);
+  var opts = _.extend({}, options);
+  var ext = opts.parse || file.ext(filepath);
   var reader = file.readJSONSync;
   switch(ext) {
-    case '.json':
+    case 'json':
       reader = file.readJSONSync;
       break;
-    case '.yml':
-    case '.yaml':
+    case 'yml':
+    case 'yaml':
       reader = file.readYAMLSync;
       break;
   }
@@ -310,7 +310,7 @@ file.expandData = function (filepath, options) {
   var contents;
 
   glob.find(filepath, opts).map(function (filepath) {
-    var name = _path.basename(filepath);
+    var name = file.basename(filepath);
     if (file.isEmptyFile(filepath)) {
       if(opts.verbose) {console.warn('Skipping empty file:'.yellow, filepath);}
     } else {
@@ -568,10 +568,7 @@ file.firstSegment = function() {
 };
 
 // First segment of a file path
-file.firstDir = function (f) {
-  var filepath = path.join.apply(path, arguments);
-  return _.initial(filepath.split('/')).join('/');
-};
+file.firstDir = file.firstSegment;
 
 // Directory path
 file.dirname = function() {
@@ -644,7 +641,9 @@ file.addTrailingSlash = function () {
   return filepath;
 };
 
-// Ensure that filepath has trailing slash
+// Ensure that filepath has trailing slash. Alternate
+// to `addTrailingSlash`. One of these will be deprecated
+// after more tests, and we'll keep the name `slashify`.
 file.slashify = function () {
   var filepath = path.join.apply(path, arguments);
   var last = _.last((filepath).split('/'));
