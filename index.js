@@ -278,18 +278,18 @@ file.isMatch = function(patterns, filepaths, options) {
 // Returns the resolved filepath for a specific file using
 // globbing patterns. If multiple matches are found, only
 // the first is returned
-file.findFile = function(filepath, options) {
-  var opts = _.extend({filter: 'isFile'}, options);
-  var str = glob.find(filepath, opts)[0];
+file.findFile = function() {
+  var filepath = path.join.apply(path, arguments);
+  var str = glob.find(filepath, {filter: 'isFile'})[0];
   return str ? String(path.resolve(str)) : null;
 };
 
 // Returns resolved dirpath for a specific directory using
 // globbing patterns. If multiple matches are found, only
 // the first direc returned
-file.findDir = function(dir, options) {
-  var opts = _.extend({filter: 'isDirectory'}, options);
-  var str = glob.find(dir, opts)[0];
+file.findDir = function() {
+  var filepath = path.join.apply(path, arguments);
+  var str = glob.find(filepath, {filter: 'isDirectory'})[0];
   return str ? String(path.resolve(str)) : null;
 };
 
@@ -566,7 +566,12 @@ file.firstSegment = function() {
   var filepath = path.join.apply(path, arguments);
   return _.compact(filepath.split(path.sep)).slice(0, 1)[0];
 };
-file.firstDir = file.firstSegment;
+
+// First segment of a file path
+file.firstDir = function (f) {
+  var filepath = path.join.apply(path, arguments);
+  return _.initial(filepath.split('/')).join('/');
+};
 
 // Directory path
 file.dirname = function() {
@@ -586,12 +591,6 @@ file.dir = function() {
   return filepath;
 };
 
-
-
-/**
- * Path "endings"
- */
-
 // Last dictory path segment, excluding the filename
 file.lastDir = function() {
   var filepath = path.join.apply(path, arguments);
@@ -602,6 +601,11 @@ file.lastDir = function() {
   // return _.compact(segments).splice(-1,1)[0];
   return _.compact(segments).pop();
 };
+
+
+/**
+ * Path "endings"
+ */
 
 // The last character in a filepath. 'foo/bar/baz/' => '/'
 file.lastChar = function(filepath) {
@@ -640,6 +644,16 @@ file.addTrailingSlash = function () {
   return filepath;
 };
 
+// Ensure that filepath has trailing slash
+file.slashify = function () {
+  var filepath = path.join.apply(path, arguments);
+  var last = _.last((filepath).split('/'));
+  if(last.indexOf('.') === -1) {
+    return filepath.replace(/\/$/, '') + '/';
+  } else {
+    return filepath;
+  }
+};
 
 
 /**
