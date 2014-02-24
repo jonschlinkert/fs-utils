@@ -174,6 +174,30 @@ file.readFileSync = function(filepath, options) {
   }
 };
 
+// Read file
+file.readFile = function (filepath, options, callback) {
+  options = options || {};
+
+  if (_.isFunction(options)) {
+    callback = options;
+    options = {};
+  }
+
+  async.waterfall([
+    function (next) { fs.readFile(String(filepath), file.encoding(options), next); },
+    function (contents, next) {
+      try {
+        next(null, file.stripBOM(contents));
+      } catch (err) {
+        err.message = 'Failed to read "' + filepath + '": ' + err.message;
+        next(err);
+      }
+    }
+  ],
+  callback);
+
+};
+
 // Read JSON file synchronously and parse content as JSON
 file.readJSONSync = function(filepath) {
   var buffer = file.readFileSync(filepath);
@@ -185,8 +209,24 @@ file.readJSONSync = function(filepath) {
   }
 };
 
+// Read JSON file asynchronously and parse content as JSON
+file.readJSON = function (filepath, callback) {
+  async.waterfall([
+    function (next) { fs.readFile(filepath, next); },
+    function (contents, next) {
+      try {
+        next(null, JSON.parse(contents));
+      } catch (err) {
+        err.message = 'Failed to parse "' + filepath + '": ' + err.message;
+        next(err);
+      }
+    }
+  ],
+  callback);
+};
+
 // Read YAML file synchronously and parse content as JSON
-file.readYAMLSync = function(filepath) {
+file.readYAMLSync = function (filepath) {
   var buffer = file.readFileSync(filepath);
   try {
     return YAML.load(buffer);
@@ -194,6 +234,22 @@ file.readYAMLSync = function(filepath) {
     err.message = 'Failed to parse "' + filepath + '": ' + err.message;
     throw err;
   }
+};
+
+// Read YAML file synchronously and parse content as JSON
+file.readYAML = function (filepath, callback) {
+  async.waterfall([
+    function (next) { file.readFile(filepath, next); },
+    function (contents, next) {
+      try {
+        next(null, YAML.load(contents));
+      } catch (err) {
+        err.message = 'Failed to parse "' + filepath + '": ' + err.message;
+        next(err);
+      }
+    }
+  ],
+  callback);
 };
 
 // Read optional JSON
@@ -215,7 +271,7 @@ file.readOptionalYAML = function(filepath) {
 };
 
 // Determine the reader based on extension.
-file.readDataSync = function(filepath, options) {
+file.readDataSync = function (filepath, options) {
   var opts = _.extend({}, options);
   var ext = opts.parse || file.ext(filepath);
   var reader = file.readJSONSync;
@@ -229,6 +285,29 @@ file.readDataSync = function(filepath, options) {
       break;
   }
   return reader(filepath, options);
+};
+
+// Determine the reader based on extension (async).
+file.readData = function (filepath, options, callback) {
+
+  if (_.isFunction(options || {})) {
+    callback = options;
+    options = {};
+  }
+
+  var opts = _.extend({}, options);
+  var ext = opts.parse || file.ext(filepath);
+  var reader = file.readJSON;
+  switch (ext) {
+    case 'json':
+      reader = file.readJSON;
+      break;
+    case 'yml':
+    case 'yaml':
+      reader = file.readYAML;
+      break;
+  }
+  reader(filepath, callback);
 };
 
 

@@ -78,28 +78,68 @@ describe('file system methods', function () {
     expect(actual).to.eql(expected);
   });
 
-  it('should read the json file', function() {
+  it('should read the file (async)', function (done) {
+    var expected = testTxtContents;
+    file.readFile(testTxtPath, function (err, actual) {
+      expect(actual).to.eql(expected);
+      done();
+    });
+  });
+
+  it('should read the json file', function () {
     var expected = testJsonContents;
     var actual = file.readJSONSync(testJsonPath);
     expect(actual).to.eql(expected);
   });
 
-  it('should read the yaml file', function() {
+  it('should read the json file (async)', function (done) {
+    var expected = testJsonContents;
+    file.readJSON(testJsonPath, function (err, actual) {
+      expect(actual).to.eql(expected);
+      done();
+    });
+  });
+
+  it('should read the yaml file', function () {
     var expected = testYamlContents;
     var actual = file.readYAMLSync(testYamlPath);
     expect(actual).to.eql(expected);
   });
 
-  it('should read the json file automatically', function() {
+  it('should read the yaml file (async)', function (done) {
+    var expected = testYamlContents;
+    file.readYAML(testYamlPath, function (err, actual) {
+      expect(actual).to.eql(expected);
+      done();
+    });
+  });
+
+  it('should read the json file automatically', function () {
     var expected = testJsonContents;
     var actual = file.readDataSync(testJsonPath);
     expect(actual).to.eql(expected);
   });
 
-  it('should read the yaml file automatically', function() {
+  it('should read the json file automatically (async)', function (done) {
+    var expected = testJsonContents;
+    file.readData(testJsonPath, function (err, actual) {
+      expect(actual).to.eql(expected);
+      done();
+    });
+  });
+
+  it('should read the yaml file automatically', function () {
     var expected = testYamlContents;
     var actual = file.readDataSync(testYamlPath);
     expect(actual).to.eql(expected);
+  });
+
+  it('should read the yaml file automatically (async)', function (done) {
+    var expected = testYamlContents;
+    file.readData(testYamlPath, function (err, actual) {
+      expect(actual).to.eql(expected);
+      done();
+    });
   });
 
   it('should make a directory, asynchronously', function(done) {

@@ -17,7 +17,7 @@
   ],
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha -R spec"
   },
   "engines": {
     "node": ">= 0.8.0"
