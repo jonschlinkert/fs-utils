@@ -467,22 +467,19 @@ file.mkdirpSync = function (dir) {
 
 file.writeFile = function (dest, content, callback) {
   var destpath = path.dirname(dest);
-  async.waterfall([
-    function (next) { fs.exists(destpath, next); },
-    function (exists, next) {
-      if (exists) {
-        fs.writeFile(dest, content, next);
-      } else {
-        file.mkdir(destpath, function (err) {
-          if (err) { next(err); }
-          else {
-            fs.writeFile(dest, content, next);
-          }
-        });
-      }
+  fs.exists(destpath, function (exists) {
+    if (exists) {
+      fs.writeFile(dest, content, callback);
+    } else {
+      file.mkdir(destpath, function (err) {
+        if (err) { next(err); }
+        else {
+          fs.writeFile(dest, content, callback);
+        }
+      });
     }
-  ],
-  callback);
+  });
+
 };
 
 // Write files to disk, synchronously
@@ -538,17 +535,20 @@ file.writeDataSync = function(dest, content, options) {
   var writer = file.writeJSONSync;
   switch(ext) {
     case '.json':
+    case 'json':
       writer = file.writeJSONSync;
       break;
     case '.yml':
+    case 'yml':
     case '.yaml':
+    case 'yaml':
       writer = file.writeYAMLSync;
       break;
   }
   return writer(dest, content, options);
 };
 
-file.writeData = function (dest, content, options) {
+file.writeData = function (dest, content, options, callback) {
   options = options || {};
   if (_.isFunction(options)) {
     callback = options;
@@ -558,10 +558,13 @@ file.writeData = function (dest, content, options) {
   var writer = file.writeJSON;
   switch (ext) {
     case '.json':
+    case 'json':
       writer = file.writeJSON;
       break;
     case '.yml':
+    case 'yml':
     case '.yaml':
+    case 'yaml':
       writer = file.writeYAML;
       break;
   }

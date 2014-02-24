@@ -12,9 +12,11 @@ var cwd = process.cwd();
 describe('file system methods', function () {
 
   var testTxtPath = path.join('test', 'fixtures', 'test.txt');
+  var testTxtWritePath = path.join('test', 'actual', 'test.txt');
   var testTxtContents = 'FILE CONTENTS!!!';
 
   var testJsonPath = path.join('test', 'fixtures', 'test.json');
+  var testJsonWritePath = path.join('test', 'actual', 'test.json');
   var testJsonContents = {
     "foo": {
       "bar": "baz"
@@ -22,6 +24,7 @@ describe('file system methods', function () {
   };
 
   var testYamlPath = path.join('test', 'fixtures', 'test.yaml');
+  var testYamlWritePath = path.join('test', 'actual', 'test.yaml');
   var testYamlContents = {
     "foo": {
       "bar": "baz"
@@ -211,4 +214,100 @@ describe('file system methods', function () {
       done();
     });
   });
+
+  it('should write a file', function () {
+    var expected = testTxtContents;
+    file.writeFileSync(testTxtWritePath, expected);
+    var actual = file.readFileSync(testTxtWritePath);
+    file.delete(testTxtWritePath);
+    expect(actual).to.eql(expected);
+  });
+
+  it('should write a file (async)', function (done) {
+    var expected = testTxtContents;
+    file.writeFile(testTxtWritePath, expected, function () {
+      file.readFile(testTxtWritePath, function (err, actual) {
+        file.delete(testTxtWritePath);
+        expect(actual).to.eql(expected);
+        done();
+      });
+    });
+  });
+
+  it('should write the json file', function () {
+    var expected = testJsonContents;
+    file.writeJSONSync(testJsonWritePath, expected);
+    var actual = file.readJSONSync(testJsonWritePath);
+    file.delete(testJsonWritePath);
+    expect(actual).to.eql(expected);
+  });
+
+  it('should write the json file (async)', function (done) {
+    var expected = testJsonContents;
+    file.writeJSON(testJsonWritePath, expected, function () {
+      file.readJSON(testJsonWritePath, function (err, actual) {
+        file.delete(testJsonWritePath);
+        expect(actual).to.eql(expected);
+        done();
+      });
+    });
+  });
+
+  it('should write the yaml file', function () {
+    var expected = testYamlContents;
+    file.writeYAMLSync(testYamlWritePath, expected);
+    var actual = file.readYAMLSync(testYamlWritePath);
+    file.delete(testYamlWritePath);
+    expect(actual).to.eql(expected);
+  });
+
+  it('should write the yaml file (async)', function (done) {
+    var expected = testYamlContents;
+    file.writeYAML(testYamlWritePath, expected, function () {
+      file.readYAML(testYamlWritePath, function (err, actual) {
+        file.delete(testYamlWritePath);
+        expect(actual).to.eql(expected);
+        done();
+      });
+    });
+  });
+
+  it('should write the json file automatically', function () {
+    var expected = testJsonContents;
+    file.writeDataSync(testJsonWritePath, expected);
+    var actual = file.readDataSync(testJsonWritePath);
+    file.delete(testJsonWritePath);
+    expect(actual).to.eql(expected);
+  });
+
+  it('should write the json file automatically (async)', function (done) {
+    var expected = testJsonContents;
+    file.writeData(testJsonWritePath, expected, function () {
+      file.readData(testJsonWritePath, function (err, actual) {
+        file.delete(testJsonWritePath);
+        expect(actual).to.eql(expected);
+        done();
+      });
+    });
+  });
+
+  it('should write the yaml file automatically', function () {
+    var expected = testYamlContents;
+    file.writeDataSync(testYamlWritePath, expected);
+    var actual = file.readDataSync(testYamlWritePath);
+    file.delete(testYamlWritePath);
+    expect(actual).to.eql(expected);
+  });
+
+  it('should write the yaml file automatically (async)', function (done) {
+    var expected = testYamlContents;
+    file.writeData(testYamlWritePath, expected, function () {
+      file.readData(testYamlWritePath, function (err, actual) {
+        file.delete(testYamlWritePath);
+        expect(actual).to.eql(expected);
+        done();
+      });
+    });
+  });
+
 });
