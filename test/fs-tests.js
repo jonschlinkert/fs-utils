@@ -160,12 +160,12 @@ describe('file system methods', function () {
   });
 
   it('should remove a directory, asynchronously', function(done) {
-  	var existingDir = ('test', 'actual', 'new', 'folder', 'async');
+    var existingDir = ('test', 'actual', 'new', 'folder', 'async');
     file.rmdir(existingDir, function(err) {
-    	if (err) return console.log(err);
-	    var expected = !file.exists(existingDir);
-	    expect(expected).to.be.ok;
-	    done();
+      if (err) return console.log(err);
+      var expected = !file.exists(existingDir);
+      expect(expected).to.be.ok;
+      done();
     });
   });
 

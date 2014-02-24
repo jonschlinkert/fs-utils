@@ -467,15 +467,22 @@ file.mkdirpSync = function (dir) {
 
 file.writeFile = function (dest, content, callback) {
   var destpath = path.dirname(dest);
-  fs.exists(destpath, function (exists) {
-    if (exists) {
-      fs.writeFile(dest, content, callback);
-    } else {
-      file.mkdir(destpath, function () {
-        fs.writeFile(dest, content, callback);
-      });
+  async.waterfall([
+    function (next) { fs.exists(destpath, next); },
+    function (exists, next) {
+      if (exists) {
+        fs.writeFile(dest, content, next);
+      } else {
+        file.mkdir(destpath, function (err) {
+          if (err) { next(err); }
+          else {
+            fs.writeFile(dest, content, next);
+          }
+        });
+      }
     }
-  });
+  ],
+  callback);
 };
 
 // Write files to disk, synchronously
@@ -495,11 +502,33 @@ file.writeJSONSync = function(dest, content, options) {
   file.writeFileSync(dest, content);
 };
 
+file.writeJSON = function (dest, content, options, callback) {
+  options = options || {};
+  if (_.isFunction(options)) {
+    callback = options;
+    options = {};
+  }
+  options.indent = options.indent || 2;
+  content = JSON.stringify(content, null, options.indent);
+  file.writeFile(dest, content, callback);
+};
+
 file.writeYAMLSync = function(dest, content, options) {
   options = options || {};
   options.indent = options.indent || 2;
   content = YAML.dump(content, null, options.indent);
   file.writeFileSync(dest, content);
+};
+
+file.writeYAML = function (dest, content, options, callback) {
+  options = options || {};
+  if (_.isFunction(options)) {
+    callback = options;
+    options = {};
+  }
+  options.indent = options.indent || 2;
+  content = YAML.dump(content, null, options.indent);
+  file.writeFile(dest, content, callback);
 };
 
 // @example: file.writeDataSync('foo.yml', {foo: "bar"});
@@ -517,6 +546,26 @@ file.writeDataSync = function(dest, content, options) {
       break;
   }
   return writer(dest, content, options);
+};
+
+file.writeData = function (dest, content, options) {
+  options = options || {};
+  if (_.isFunction(options)) {
+    callback = options;
+    options = {};
+  }
+  var ext = options.ext || path.extname(dest);
+  var writer = file.writeJSON;
+  switch (ext) {
+    case '.json':
+      writer = file.writeJSON;
+      break;
+    case '.yml':
+    case '.yaml':
+      writer = file.writeYAML;
+      break;
+  }
+  writer(dest, content, options, callback);
 };
 
 
