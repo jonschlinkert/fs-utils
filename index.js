@@ -168,6 +168,30 @@ file.readFileSync = function(filepath, options) {
   }
 };
 
+// Read file
+file.readFile = function (filepath, options, callback) {
+  options = options || {};
+
+  if (_.isFunction(options)) {
+    callback = options;
+    options = {};
+  }
+
+  async.waterfall([
+    function (next) { fs.readFile(String(filepath), file.encoding(options), next); },
+    function (contents, next) {
+      try {
+        next(null, file.stripBOM(contents));
+      } catch (err) {
+        err.message = 'Failed to read "' + filepath + '": ' + err.message;
+        next(err);
+      }
+    }
+  ],
+  callback);
+
+};
+
 // Read JSON file synchronously and parse content as JSON
 file.readJSONSync = function(filepath) {
   var buffer = file.readFileSync(filepath);
@@ -179,8 +203,24 @@ file.readJSONSync = function(filepath) {
   }
 };
 
+// Read JSON file asynchronously and parse content as JSON
+file.readJSON = function (filepath, callback) {
+  async.waterfall([
+    function (next) { fs.readFile(filepath, next); },
+    function (contents, next) {
+      try {
+        next(null, JSON.parse(contents));
+      } catch (err) {
+        err.message = 'Failed to parse "' + filepath + '": ' + err.message;
+        next(err);
+      }
+    }
+  ],
+  callback);
+};
+
 // Read YAML file synchronously and parse content as JSON
-file.readYAMLSync = function(filepath) {
+file.readYAMLSync = function (filepath) {
   var buffer = file.readFileSync(filepath);
   try {
     return YAML.load(buffer);
@@ -188,6 +228,22 @@ file.readYAMLSync = function(filepath) {
     err.message = 'Failed to parse "' + filepath + '": ' + err.message;
     throw err;
   }
+};
+
+// Read YAML file synchronously and parse content as JSON
+file.readYAML = function (filepath, callback) {
+  async.waterfall([
+    function (next) { file.readFile(filepath, next); },
+    function (contents, next) {
+      try {
+        next(null, YAML.load(contents));
+      } catch (err) {
+        err.message = 'Failed to parse "' + filepath + '": ' + err.message;
+        next(err);
+      }
+    }
+  ],
+  callback);
 };
 
 // Read optional JSON
@@ -209,7 +265,7 @@ file.readOptionalYAML = function(filepath) {
 };
 
 // Determine the reader based on extension.
-file.readDataSync = function(filepath, options) {
+file.readDataSync = function (filepath, options) {
   var opts = _.extend({}, options);
   var ext = opts.parse || file.ext(filepath);
   var reader = file.readJSONSync;
@@ -223,6 +279,29 @@ file.readDataSync = function(filepath, options) {
       break;
   }
   return reader(filepath, options);
+};
+
+// Determine the reader based on extension (async).
+file.readData = function (filepath, options, callback) {
+
+  if (_.isFunction(options || {})) {
+    callback = options;
+    options = {};
+  }
+
+  var opts = _.extend({}, options);
+  var ext = opts.parse || file.ext(filepath);
+  var reader = file.readJSON;
+  switch (ext) {
+    case 'json':
+      reader = file.readJSON;
+      break;
+    case 'yml':
+    case 'yaml':
+      reader = file.readYAML;
+      break;
+  }
+  reader(filepath, callback);
 };
 
 
@@ -386,11 +465,15 @@ file.writeFile = function (dest, content, callback) {
     if (exists) {
       fs.writeFile(dest, content, callback);
     } else {
-      file.mkdir(destpath, function () {
-        fs.writeFile(dest, content, callback);
+      file.mkdir(destpath, function (err) {
+        if (err) { next(err); }
+        else {
+          fs.writeFile(dest, content, callback);
+        }
       });
     }
   });
+
 };
 
 // Write files to disk, synchronously
@@ -410,11 +493,33 @@ file.writeJSONSync = function(dest, content, options) {
   file.writeFileSync(dest, content);
 };
 
+file.writeJSON = function (dest, content, options, callback) {
+  options = options || {};
+  if (_.isFunction(options)) {
+    callback = options;
+    options = {};
+  }
+  options.indent = options.indent || 2;
+  content = JSON.stringify(content, null, options.indent);
+  file.writeFile(dest, content, callback);
+};
+
 file.writeYAMLSync = function(dest, content, options) {
   options = options || {};
   options.indent = options.indent || 2;
   content = YAML.dump(content, null, options.indent);
   file.writeFileSync(dest, content);
+};
+
+file.writeYAML = function (dest, content, options, callback) {
+  options = options || {};
+  if (_.isFunction(options)) {
+    callback = options;
+    options = {};
+  }
+  options.indent = options.indent || 2;
+  content = YAML.dump(content, null, options.indent);
+  file.writeFile(dest, content, callback);
 };
 
 // @example: file.writeDataSync('foo.yml', {foo: "bar"});
@@ -424,14 +529,40 @@ file.writeDataSync = function(dest, content, options) {
   var writer = file.writeJSONSync;
   switch(ext) {
     case '.json':
+    case 'json':
       writer = file.writeJSONSync;
       break;
     case '.yml':
+    case 'yml':
     case '.yaml':
+    case 'yaml':
       writer = file.writeYAMLSync;
       break;
   }
   return writer(dest, content, options);
+};
+
+file.writeData = function (dest, content, options, callback) {
+  options = options || {};
+  if (_.isFunction(options)) {
+    callback = options;
+    options = {};
+  }
+  var ext = options.ext || path.extname(dest);
+  var writer = file.writeJSON;
+  switch (ext) {
+    case '.json':
+    case 'json':
+      writer = file.writeJSON;
+      break;
+    case '.yml':
+    case 'yml':
+    case '.yaml':
+    case 'yaml':
+      writer = file.writeYAML;
+      break;
+  }
+  writer(dest, content, options, callback);
 };
 
 
