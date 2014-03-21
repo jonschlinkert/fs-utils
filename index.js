@@ -46,6 +46,7 @@ file.pathSepRegex = /[\/\\]/g;
 file.normalizeSlash = function(str) {
   return str.replace(file.pathSepRegex, '/');
 };
+file.slashify = file.pathSepRegex;
 
 // Normalize line endings
 file.normalizeEOL = function(str) {
@@ -80,17 +81,10 @@ file.stripBOM = function(str) {
  * CWD
  */
 
-// Normalized path to the CWD
-// @example: file.cwd('foo')
-file.cwd = function() {
-  var filepath = path.join.apply(path, arguments);
-  return file.normalizeSlash(path.join(process.cwd(), filepath));
-};
-
 // Change the current working directory (CWD)
 file.setCWD = function() {
-  var filepath = path.join.apply(path, arguments);
-  process.chdir(filepath);
+  var dir = path.join.apply(path, arguments);
+  process.chdir(dir);
 };
 
 
@@ -578,6 +572,17 @@ file.dirname = function() {
   return file.addTrailingSlash(dir);
 };
 
+file.folder = function() {
+  if (prefix) {
+    prefix = prefix.substring(0, prefix.lastIndexOf('/'));
+
+    if (prefix.indexOf('/') !== -1) {
+      prefix = prefix.substring(prefix.lastIndexOf('/') + 1);
+    }
+  }
+  return prefix;
+};
+
 // Directory path
 file.dir = function() {
   var filepath = path.join.apply(path, arguments);
@@ -756,15 +761,6 @@ file.withExt = function (filepath, ext) {
     }
   });
   return list;
-};
-
-// Returns true if the filepath ends in a file with an extension
-file.isModule = function() {
-  var filepath = path.join.apply(path, arguments);
-  if(file.ext(filepath) !== 'js' && file.base(filepath) !== 'index') {
-    return false;
-  }
-  return filepath;
 };
 
 
