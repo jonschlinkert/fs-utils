@@ -1,23 +1,21 @@
 /**
- * fs-utils
+ * fs-utils <https://github.com/assemble/fs-utils>
+ *
  * Copyright (c) 2014 Jon Schlinkert, Brian Woodward, contributors.
  * Licensed under the MIT license.
  */
 
-'use strict';
-
-// Node.js
-var fs       = require('graceful-fs');
-var os       = require('os');
-var path     = require('path');
+const fs       = require('graceful-fs');
+const os       = require('os');
+const path     = require('path');
 
 // node_modules
-var async    = require('async');
-var glob     = require('globule');
-var rimraf   = require('rimraf');
-var YAML     = require('js-yaml');
-var template = require('template');
-var _        = require('lodash');
+const async    = require('async');
+const glob     = require('globule');
+const rimraf   = require('rimraf');
+const YAML     = require('js-yaml');
+const template = require('template');
+const _        = require('lodash');
 
 
 
@@ -67,7 +65,7 @@ file.encoding = function(options) {
 file.preserveBOM = false;
 file.stripBOM = function(str) {
   // Transform EOL
-  var contents = (os.EOL === '\n') ? str : str.replace(file.EOLre, '\n');
+  var contents = (os.EOL === '\n') ? str : str.replace(os.EOL, '\n');
   // Strip UTF BOM
   if (!file.preserveBOM && contents.charCodeAt(0) === 0xFEFF) {
     contents = contents.substring(1);
@@ -178,8 +176,10 @@ file.readFile = function (filepath, options, callback) {
   }
 
   async.waterfall([
-    function (next) { fs.readFile(String(filepath), file.encoding(options), next); },
-    function (contents, next) {
+
+    function (next) {
+      fs.readFile(String(filepath), file.encoding(options), next);
+    }, function (contents, next) {
       try {
         next(null, file.stripBOM(contents));
       } catch (err) {
@@ -188,7 +188,7 @@ file.readFile = function (filepath, options, callback) {
       }
     }
   ],
-  callback);
+    callback);
 
 };
 
@@ -377,13 +377,15 @@ file.findDir = function() {
 // Should "expandData" actually read in the files,
 // and "expandData" not? If so, we should deprecate
 // the latter and make this change.
-file.expandData = function (filepath, options) {
-  var opts = _.extend({}, options);
+file.expandData = function (patterns, options) {
+  var opts = options || {};
   opts.data = opts.data || {};
   var contents;
 
-  glob.find(filepath, opts).map(function (filepath) {
-    var name = file.basename(filepath);
+  patterns = file.arrayify(patterns);
+
+  file.expand(patterns, opts).map(function (filepath) {
+    var name = file.name(filepath);
     if (file.isEmptyFile(filepath)) {
       if(opts.verbose) {console.warn('Skipping empty file:'.yellow, filepath);}
     } else {
@@ -466,7 +468,7 @@ file.writeFile = function (dest, content, callback) {
       fs.writeFile(dest, content, callback);
     } else {
       file.mkdir(destpath, function (err) {
-        if (err) { next(err); }
+        if (err) { callback(err); }
         else {
           fs.writeFile(dest, content, callback);
         }
@@ -701,17 +703,6 @@ file.dirname = function() {
   var dirlen = filepath.length - 1;
   var dir = file.normalizeSlash(filepath.splice(0, dirlen).join(path.sep));
   return file.addTrailingSlash(dir);
-};
-
-file.folder = function() {
-  if (prefix) {
-    prefix = prefix.substring(0, prefix.lastIndexOf('/'));
-
-    if (prefix.indexOf('/') !== -1) {
-      prefix = prefix.substring(prefix.lastIndexOf('/') + 1);
-    }
-  }
-  return prefix;
 };
 
 // Directory path

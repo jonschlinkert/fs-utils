@@ -1,17 +1,14 @@
 /**
- * Assemble
+ * fs-utils <https://github.com/assemble/fs-utils>
  *
- * Assemble <http://assemble.io>
- * Created and maintained by Jon Schlinkert and Brian Woodward
- *
- * Copyright (c) 2014 Upstage.
- * Licensed under the MIT License (MIT).
+ * Copyright (c) 2014 Jon Schlinkert, Brian Woodward, contributors.
+ * Licensed under the MIT license.
  */
 
-var expect = require('chai').expect;
-var file   = require('../');
-var path   = require('path');
-var cwd    = process.cwd();
+const expect = require('chai').expect;
+const file   = require('../');
+const path   = require('path');
+const cwd    = process.cwd();
 
 // Normalize slashes in some test results
 var normalize = file.normalizeSlash;
@@ -537,28 +534,4 @@ describe('file extension:', function() {
     var actual = file.base('path/to/file.json');
     expect(actual).to.eql(expected);
   });
-});
-
-describe('cwd:', function() {
-
-	it('should get the absolute cwd', function() {
-	  var expected = file.normalizeSlash(cwd);
-	  var actual = file.cwd();
-	  expect(actual).to.eql(expected);
-	});
-
-	it('should get the absolute path relative to the cwd given the parameters', function() {
-		var expected = file.normalizeSlash(path.join(cwd, 'first', 'second', 'third'));
-	  var actual = file.cwd('first', 'second', 'third');
-	  expect(actual).to.eql(expected);
-	});
-
-	it('should change the cwd', function() {
-	  var expected = file.normalizeSlash(path.join(cwd, 'test', 'fixtures'));
-	  file.setCWD('test', 'fixtures');
-	  var actual = file.normalizeSlash(process.cwd());
-	  expect(actual).to.eql(expected);
-
-	  file.setCWD('..', '..');
-	});
 });

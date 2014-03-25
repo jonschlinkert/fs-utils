@@ -1,13 +1,14 @@
 /**
- * fs-utils
+ * fs-utils <https://github.com/assemble/fs-utils>
+ *
  * Copyright (c) 2014 Jon Schlinkert, Brian Woodward, contributors.
  * Licensed under the MIT license.
  */
 
-var expect = require('chai').expect;
-var path = require('path');
-var file = require('../');
-var cwd = process.cwd();
+const expect = require('chai').expect;
+const path = require('path');
+const file = require('../');
+const cwd = process.cwd();
 
 describe('file system methods', function () {
 
