@@ -318,23 +318,6 @@ file.expand = function(patterns, options) {
   return glob.find(patterns, opts);
 };
 
-// Given a set of source file paths, returns an array
-// of src-dest file mapping objects. Example:
-//   file.mapping(['a.js', 'b.js', 'c.js'])
-file.mapping = function(filepaths, options) {
-  var opts = _.extend({}, options);
-  opts.srcBase = opts.cwd;
-  return glob.findMapping(filepaths, opts);
-};
-
-// Returns a unique array of all directories that match
-// the given globbing patterns.
-file.expandMapping = function(patterns, options) {
-  var opts = _.extend({}, options);
-  opts.srcBase = opts.cwd;
-  return glob.findMapping(patterns, opts);
-};
-
 // Match one or more globbing patterns against one
 // or more file paths.
 file.match = function(patterns, filepaths, options) {
@@ -347,6 +330,24 @@ file.isMatch = function(patterns, filepaths, options) {
   var opts = _.extend({}, options);
   return glob.isMatch(patterns, filepaths, opts);
 };
+
+// Given a set of source file paths, returns an array
+// of src-dest file mapping objects. Example:
+//   file.mapping(['a.js', 'b.js', 'c.js'])
+file.mapping = function(filepaths, options) {
+  var opts = _.extend({}, options);
+  opts.srcBase = opts.cwd;
+  return glob.mapping(filepaths, opts);
+};
+
+// Returns a unique array of all directories that match
+// the given globbing patterns.
+file.expandMapping = function(patterns, options) {
+  var opts = _.extend({}, options);
+  opts.srcBase = opts.cwd;
+  return glob.findMapping(patterns, opts);
+};
+
 
 // Returns the resolved filepath for a specific file using
 // globbing patterns. If multiple matches are found, only

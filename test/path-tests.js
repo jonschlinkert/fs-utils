@@ -535,3 +535,14 @@ describe('file extension:', function() {
     expect(actual).to.eql(expected);
   });
 });
+
+describe('cwd:', function() {
+  it('should change the cwd', function() {
+    var expected = file.normalizeSlash(path.join(cwd, 'test', 'fixtures'));
+    file.setCWD('test', 'fixtures');
+    var actual = file.normalizeSlash(process.cwd());
+    expect(actual).to.eql(expected);
+
+    file.setCWD('..', '..');
+  });
+});
