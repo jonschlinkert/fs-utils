@@ -5,22 +5,16 @@
  * Licensed under the MIT license.
  */
 
-const fs       = require('graceful-fs');
-const os       = require('os');
-const path     = require('path');
+const fs = require('graceful-fs');
+const os = require('os');
+const path = require('path');
+const async = require('async');
+const glob = require('globule');
+const rimraf = require('rimraf');
+const YAML = require('js-yaml');
+const _ = require('lodash');
+const file = module.exports = {};
 
-// node_modules
-const async    = require('async');
-const glob     = require('globule');
-const rimraf   = require('rimraf');
-const YAML     = require('js-yaml');
-const template = require('template');
-const _        = require('lodash');
-
-
-
-// Export the `file` object
-var file = module.exports = {};
 
 
 /**
@@ -574,15 +568,11 @@ file.writeData = function (dest, content, options, callback) {
  * Copy files
  */
 
-// Copy files synchronously and process any templates within
+// Copy files synchronously
 file.copyFileSync = function (src, dest, options) {
-  var opts = _.extend({}, {process: true}, options || {});
-  src = file.readFileSync(src);
-  if(opts.process === true) {
-    src = template.process(src, opts.data, opts);
-  }
-  file.writeFileSync(dest, src, opts);
+  file.writeFileSync(dest, file.readFileSync(src), options || {});
 };
+
 
 
 
