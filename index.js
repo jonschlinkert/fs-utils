@@ -261,7 +261,7 @@ file.readOptionalYAML = function(filepath) {
 // Determine the reader based on extension.
 file.readDataSync = function (filepath, options) {
   var opts = _.extend({}, options);
-  var ext = opts.parse || file.ext(filepath);
+  var ext = opts.lang || opts.parse || file.ext(filepath);
   var reader = file.readJSONSync;
   switch(ext) {
     case 'json':
