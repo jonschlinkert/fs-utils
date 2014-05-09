@@ -307,8 +307,7 @@ file.readData = function (filepath, options, callback) {
 
 _.extend(file, glob);
 
-// Returns a unique array of all directories that match
-// the given globbing patterns.
+file.expand = glob.find;
 file.expandMapping = glob.findMapping;
 
 
