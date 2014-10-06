@@ -149,6 +149,17 @@ exports.isLink = function(filepath) {
 };
 
 /**
+ * Glob files using [globby]. Or glob files synchronously
+ * with `glob.sync`.
+ *
+ * @param  {String|Array} `patterns`
+ * @return {options}
+ * @api public
+ */
+
+exports.glob = glob;
+
+/**
  * Read a file synchronously. Also strips any byte order
  * marks.
  *
@@ -198,7 +209,6 @@ var readFile = exports.readFile = function(filepath, options, cb) {
     cb(null, content);
   });
 };
-
 
 /**
  * Read a file synchronously and parse contents as JSON.

@@ -104,4 +104,12 @@ describe('fs', function () {
     file.readDataSync('test/actual/test.yaml').should.eql({foo: {bar: "baz"}});
     file.del('test/actual/test.yaml');
   });
+
+  describe('glob', function () {
+    it('should return an array of files.', function () {
+      var files = file.glob.sync('test/**/*.js');
+      files.should.be.an.array;
+      (files.length > 2).should.be.true;
+    });
+  });
 });
