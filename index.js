@@ -8,78 +8,117 @@
 'use strict';
 
 var fs = require('graceful-fs');
-var os = require('os');
 var path = require('path');
-var del = require('delete');
 var async = require('async');
+var del = require('delete');
+var extend = require('extend-shallow');
+var glob = require('globby');
+var isAbs = require('is-absolute');
+var rel = require('relative');
 var rimraf = require('rimraf');
-var YAML = require('js-yaml');
 var typeOf = require('kind-of');
-var _ = require('lodash');
-var file = module.exports = {};
-
-function stripcr(str) {
-  return str.replace(/\r/g, '');
-}
-
-function stripBOM(str) {
-  return str.replace(/^\uFEFF/, '');
-}
+var YAML = require('js-yaml');
+var EOL = require('os').EOL;
+var EOLre = new RegExp(EOL, 'g');
 
 /**
- * Boolean checks
+ * Strip carriage returns from a string.
+ *
+ * @param  {String} `str`
+ * @return {String}
+ * @api public
  */
+
+exports.stripcr = function(str) {
+  return str.replace(/\r/g, '');
+};
+
+/**
+ * Strip byte order marks from a string.
+ *
+ * See [BOM](http://en.wikipedia.org/wiki/Byte_order_mark)
+ *
+ * @param  {String} `str`
+ * @return {String}
+ * @api public
+ */
+
+exports.stripBOM = function(str) {
+  return str.replace(/^\uFEFF/, '');
+};
+
+/**
+ * Normalize all slashes to forward slashes.
+ *
+ * @param  {String} `str`
+ * @return {String}
+ * @api public
+ */
+
+exports.forwardSlash = function(str) {
+  return str.replace(/[\\\/]/g, '/');
+};
+
+/**
+ * Normalize a string by stripping windows
+ * carriage returns and byte order marks.
+ *
+ * @param  {String} `str`
+ * @return {String}
+ * @api private
+ */
+
+exports.normalize = function(str){
+  if (EOL !== '\n') {
+    str = str.replace(EOLre, '\n');
+  }
+  return exports.stripBOM(str);
+};
+
 
 /**
  * True if the filepath actually exist.
  *
- * @param  {[type]} filepath
- * @return {[type]}
+ * @param  {String} `filepath`
+ * @return {Boolean}
  */
 
-function exists(filepath) {
-  return fs.existsSync(filepath);
-}
+var exists = exports.exists = function(paths) {
+  var fp = path.join.apply(path, arguments);
+  return fs.existsSync(fp);
+};
 
 /**
  * Return `true` if the file exists and is empty.
  *
  * @param  {String} `filepath`
  * @return {Boolean}
+ * @api public
  */
 
-function isEmpty(filepath) {
-  if (!exists(filepath)) {
+exports.isEmpty = function(fp) {
+  if (!exists(fp)) {
     return false;
   }
-  var str = fs.readFileSync(filepath, 'utf8');
-  return !!str.length > 0;
-}
-
-/**
- * Return the results from a call to `fs.statSync()`.
- *
- * @param  {String} `filepath`
- * @return {Object}
- */
-
-function stats(filepath) {
-  return fs.statSync(filepath);
-}
+  var str = exports.readFileSync(fp);
+  return str.length > 0;
+};
 
 /**
  * Return `true` if the filepath is a directory.
  *
  * @param  {String} `filepath`
  * @return {Boolean}
+ * @api public
  */
 
-function isDir(filepath) {
+exports.isDir = function(filepath) {
   if (!fs.existsSync(filepath)) {
     return false;
   }
-  return stats(filepath).isDirectory();
-}
+  return fs.statSync(filepath)
+    .isDirectory();
+};
 
 /**
  * True if the filepath is a file.
@@ -88,24 +127,26 @@ function isDir(filepath) {
  * @return {Boolean}
  */
 
-function isFile(filepath) {
+var isFile = exports.isFile = function(filepath) {
   if (!fs.existsSync(filepath)) {
     return false;
   }
-  return stats(filepath).isFile();
-}
+  return fs.statSync(filepath)
+    .isFile();
+};
 
 /**
  * True if the filepath is a symbolic link.
  *
  * @param  {String} `filepath`
  * @return {Boolean}
+ * @api public
  */
 
-function isLink(filepath) {
-  return file.exists(filepath)
-    && fs.lstatSync(filepath).isSymbolicLink();
-}
+exports.isLink = function(filepath) {
+  return exists(filepath) && fs.lstatSync(filepath)
+    .isSymbolicLink();
+};
 
 /**
  * Read a file synchronously. Also strips any byte order
@@ -113,39 +154,51 @@ function isLink(filepath) {
  *
  * @param  {String} `filepath`
  * @return {String}
+ * @api public
  */
 
-function readFileSync(filepath, enc) {
-  var str = fs.readFileSync(String(filepath), enc || 'utf8');
-  return stripBOM(str);
-}
+exports.readFileSync = function(filepath, options) {
+  var opts = extend({normalize: true, encoding: 'utf8'}, options);
+  var str = fs.readFileSync(filepath, opts.encoding);
+  if (opts.normalize && opts.encoding === 'utf8') {
+    str = exports.normalize(str);
+  }
+  return str;
+};
 
 /**
- * Read a file asynchronously. Also strips any byte order
- * marks.
+ * Read a file asynchronously.
  *
- * @param  {String} `filepath`
- * @return {String}
+ * @param {String} `filepath`
+ * @param {Object} `options`
+ *   @param {Boolean} [options] `normalize` Strip carriage returns and BOM.
+ *   @param {String} [options] `encoding` Default is `utf8`
+ * @param {Function} `callback`
+ * @api public
  */
 
-function readFile(filepath, options, callback) {
-  if (_.isFunction(options)) {
-    callback = options;
-    options = {};
-  }
-  async.waterfall([
-    function (next) {
-      fs.readFile(String(filepath), enc || 'utf8', next);
-    }, function (contents, next) {
-      try {
-        next(null, stripBOM(contents));
-      } catch (err) {
-        err.message = 'Failed to read "' + filepath + '": ' + err.message;
-        next(err);
-      }
+var readFile = exports.readFile = function(filepath, options, cb) {
+  if (!cb) {
+    if (typeof options === 'function') {
+      cb = options;
+      options = {};
+    } else {
+      cb = function () {};
     }
-  ], callback);
-}
+  }
+
+  var opts = extend({normalize: true, encoding: 'utf8'}, options);
+
+  fs.readFile(filepath, opts.encoding, function (err, content) {
+    if (err) return cb(err);
+
+    if (opts.normalize && opts.encoding === 'utf8') {
+      content = exports.normalize(content);
+    }
+    cb(null, content);
+  });
+};
+
 
 /**
  * Read a file synchronously and parse contents as JSON.
@@ -153,155 +206,183 @@ function readFile(filepath, options, callback) {
  *
  * @param  {String} `filepath`
  * @return {Object}
+ * @api public
  */
 
-function readJSONSync(filepath) {
-  return JSON.parse(fs.readFileSync(filepath, 'utf8'));
-}
+exports.readJSONSync = function(filepath, options) {
+  return JSON.parse(exports.readFileSync(filepath, options));
+};
 
-// Read JSON file asynchronously and parse content as JSON
-function readJSON(filepath, callback) {
+/**
+ * Read JSON file asynchronously and parse content as JSON
+ *
+ * @param  {String} `filepath`
+ * @param  {Function} `callback`
+ * @return {Object}
+ * @api public
+ */
+
+exports.readJSON = function(filepath, cb) {
   async.waterfall([
     function (next) {
-      fs.readFile(filepath, next);
+      readFile(filepath, next);
     }, function (contents, next) {
-      try {
-        next(null, JSON.parse(contents));
-      } catch (err) {
-        err.message = 'Failed to parse "' + filepath + '": ' + err.message;
-        next(err);
-      }
+      next(null, JSON.parse(contents));
     }
-  ], callback);
-}
+  ], cb);
+};
 
+/**
+ * Read a YAML file synchronously and parse its content as JSON
+ *
+ * @param  {String} `filepath`
+ * @return {Object}
+ * @api public
+ */
 
-// Read YAML file synchronously and parse content as JSON
-function readYAMLSync(filepath) {
-  var buffer = file.readFileSync(filepath);
-  try {
-    return YAML.load(buffer);
-  } catch (err) {
-    err.message = 'Failed to parse "' + filepath + '": ' + err.message;
-    throw err;
-  }
-}
+exports.readYAMLSync = function(filepath) {
+  return YAML.load(exports.readFileSync(filepath));
+};
 
-// Read YAML file synchronously and parse content as JSON
-function readYAML(filepath, callback) {
-  async.waterfall([
-    function (next) {
-      file.readFile(filepath, next);
-    },
-    function (contents, next) {
-      try {
-        next(null, YAML.load(contents));
-      } catch (err) {
-        err.message = 'Failed to parse "' + filepath + '": ' + err.message;
-        next(err);
-      }
+/**
+ * Read a YAML file synchronously and parse its content as JSON
+ *
+ * @param  {String} `filepath`
+ * @return {Object}
+ * @api public
+ */
+
+exports.readYAML = function(filepath, options, cb) {
+  if (!cb) {
+    if (typeof options === 'function') {
+      cb = options;
+      options = {};
+    } else {
+      cb = function () {};
     }
-  ], callback);
-}
-
-// Read optional JSON
-// Ben Alman, https://gist.github.com/2876125
-function readOptionalJSON(filepath) {
-  var buffer = {};
-  try {
-    buffer = file.readJSONSync(filepath);
-  } catch (e) {}
-  return buffer;
-}
-
-function readOptionalYAML(filepath) {
-  var buffer = {};
-  try {
-    buffer = file.readYAMLSync(filepath);
-  } catch (e) {}
-  return buffer;
-}
-
-// Determine the reader based on extension.
-function readDataSync(filepath, options) {
-  var opts = _.extend({}, options);
-  var ext = opts.lang || opts.parse || file.ext(filepath);
-  var reader = file.readJSONSync;
-  switch (ext) {
-  case 'json':
-    reader = file.readJSONSync;
-    break;
-  case 'yml':
-  case 'yaml':
-    reader = file.readYAMLSync;
-    break;
   }
-  return reader(filepath, options);
-}
 
-// Determine the reader based on extension (async).
-function readData(filepath, options, callback) {
-  if (_.isFunction(options || {})) {
-    callback = options;
-    options = {};
+  var opts = extend({normalize: true, encoding: 'utf8'}, options);
+
+  fs.readFile(filepath, opts.encoding, function (err, content) {
+    if (err) return cb(err);
+
+    if (opts.normalize && opts.encoding === 'utf8') {
+      content = exports.normalize(content);
+    }
+    cb(null, YAML.load(content));
+  });
+};
+
+/**
+ * Read JSON or YAML. Determins the reader automatically
+ * based on file extension.
+ *
+ * @param  {String} `filepath`
+ * @param  {String} `options`
+ * @return {String}
+ * @api public
+ */
+
+exports.readDataSync = function(filepath, options) {
+  var opts = options || {};
+  var ext = opts.lang || opts.parse || path.extname(filepath);
+  var reader = exports.readJSONSync;
+
+  if (ext[0] === '.') {
+    ext = ext.slice(1);
   }
-  var opts = _.extend({}, options);
-  var ext = opts.parse || file.ext(filepath);
-  var reader = file.readJSON;
+
   switch (ext) {
     case 'json':
-      reader = file.readJSON;
+      reader = exports.readJSONSync;
       break;
     case 'yml':
     case 'yaml':
-      reader = file.readYAML;
+      reader = exports.readYAMLSync;
       break;
     }
-  reader(filepath, callback);
-}
+  return reader(filepath, opts);
+};
+
+/**
+ * Read JSON or YAML async. Determins the reader automatically
+ * based on file extension.
+ *
+ * @param  {String} `filepath`
+ * @param  {String} `options`
+ * @return {String}
+ * @api public
+ */
+
+exports.readData = function(filepath, options, cb) {
+  if (typeof options === 'function') {
+    cb = options;
+    options = {};
+  }
+  var opts = extend({}, options);
+  var ext = opts.parse || path.extname(filepath);
+  var reader = exports.readJSON;
+
+  if (ext[0] === '.') {
+    ext = ext.slice(1);
+  }
+
+  switch (ext) {
+    case 'json':
+      reader = exports.readJSON;
+      break;
+    case 'yml':
+    case 'yaml':
+      reader = exports.readYAML;
+      break;
+    }
+  reader(filepath, cb);
+};
 
 /**
  * Make directories
  */
 
-function mkdir(dest, callback) {
+var mkdir = exports.mkdir = function(dest, cb) {
   var destpath = path.dirname(dest);
   fs.exists(destpath, function (exist) {
     if (exist) {
-      fs.mkdir(dest, callback);
+      fs.mkdir(dest, cb);
     } else {
-      file.mkdir(destpath, function () {
-        fs.mkdir(dest, callback);
+      mkdir(destpath, function () {
+        fs.mkdir(dest, cb);
       });
     }
   });
-}
+};
 
 // Make any dirs and intermediate dirs don't exist
-function mkdirSync(dirpath, mode) {
+var mkdirSync = exports.mkdirSync = function(dirpath, mode) {
   mode = mode || parseInt('0777', 8) & (~process.umask());
   if (!fs.existsSync(dirpath)) {
     var parentDir = path.dirname(dirpath);
     if (fs.existsSync(parentDir)) {
       fs.mkdirSync(dirpath, mode);
     } else {
-      file.mkdirSync(parentDir);
+      mkdirSync(parentDir);
       fs.mkdirSync(dirpath, mode);
     }
   }
-}
+};
 
 /**
  * Write
+ * @api public
  */
 
-function writeFile(dest, content, callback) {
+exports.writeFile = function(dest, content, callback) {
   var destpath = path.dirname(dest);
   fs.exists(destpath, function (exists) {
     if (exists) {
       fs.writeFile(dest, content, callback);
     } else {
-      file.mkdir(destpath, function (err) {
+      mkdir(destpath, function (err) {
         if (err) {
           callback(err);
         } else {
@@ -310,167 +391,271 @@ function writeFile(dest, content, callback) {
       });
     }
   });
-}
-
-
-// Write files to disk, synchronously
-function writeFileSync(dest, content, options) {
-  options = options || {};
-  var dirpath = path.dirname(dest);
-  if (!file.exists(dirpath)) {
-    file.mkdirSync(dirpath);
-  }
-  fs.writeFileSync(dest, content, file.encoding(options));
-};
-
-function writeJSONSync(dest, content, options) {
-  options = options || {};
-  options.indent = options.indent || 2;
-  content = JSON.stringify(content, null, options.indent);
-  file.writeFileSync(dest, content);
-};
-
-function writeJSON(dest, content, options, callback) {
-  options = options || {};
-  if (_.isFunction(options)) {
-    callback = options;
-    options = {};
-  }
-  options.indent = options.indent || 2;
-  content = JSON.stringify(content, null, options.indent);
-  file.writeFile(dest, content, callback);
-};
-
-function writeYAMLSync(dest, content, options) {
-  options = options || {};
-  options.indent = options.indent || 2;
-  content = YAML.dump(content, null, options.indent);
-  file.writeFileSync(dest, content);
-};
-
-function writeYAML(dest, content, options, callback) {
-  options = options || {};
-  if (_.isFunction(options)) {
-    callback = options;
-    options = {};
-  }
-  options.indent = options.indent || 2;
-  content = YAML.dump(content, null, options.indent);
-  file.writeFile(dest, content, callback);
-};
-
-// @example: file.writeDataSync('foo.yml', {foo: "bar"});
-function writeDataSync(dest, content, options) {
-  options = options || {};
-  var ext = options.ext || path.extname(dest);
-  var writer = file.writeJSONSync;
-  switch (ext) {
-  case '.json':
-  case 'json':
-    writer = file.writeJSONSync;
-    break;
-  case '.yml':
-  case 'yml':
-  case '.yaml':
-  case 'yaml':
-    writer = file.writeYAMLSync;
-    break;
-  }
-  return writer(dest, content, options);
-};
-
-file.writeData = function (dest, content, options, callback) {
-  options = options || {};
-  if (_.isFunction(options)) {
-    callback = options;
-    options = {};
-  }
-  var ext = options.ext || path.extname(dest);
-  var writer = file.writeJSON;
-  switch (ext) {
-  case '.json':
-  case 'json':
-    writer = file.writeJSON;
-    break;
-  case '.yml':
-  case 'yml':
-  case '.yaml':
-  case 'yaml':
-    writer = file.writeYAML;
-    break;
-  }
-  writer(dest, content, options, callback);
 };
 
 /**
- * Copy files
+ * Synchronously write files to disk, creating any
+ * intermediary directories if they don't exist.
+ *
+ * @param  {String} `dest`
+ * @param  {String} `str`
+ * @param  {Options} `options`
+ * @api public
  */
 
-// Copy files synchronously
-file.copyFileSync = function (src, dest, options) {
-  file.writeFileSync(dest, file.readFileSync(src), options || {});
+exports.writeFileSync = function(dest, str, options) {
+  var opts = extend({enc: 'utf8'}, options);
+  var dir = path.dirname(dest);
+
+  if (!exists(dir)) {
+    mkdirSync(dir);
+  }
+  fs.writeFileSync(dest, str, opts.enc);
 };
 
 /**
- * Remove directories
+ * Synchronously write JSON to disk, creating any
+ * intermediary directories if they don't exist.
+ *
+ * @param  {String} `dest`
+ * @param  {String} `str`
+ * @param  {Options} `options`
+ * @api public
  */
 
-// Asynchronously remove dirs and child dirs that exist
-file.rmdir = function (dirpath, callback) {
-  if (!_.isFunction(callback)) {
-    callback = function () {};
+exports.writeJSONSync = function(dest, str, options) {
+  var opts = extend({indent: 2}, options);
+  str = JSON.stringify(str, null, opts.indent);
+  exports.writeFileSync(dest, str);
+};
+
+/**
+ * Asynchronously write files to disk, creating any
+ * intermediary directories if they don't exist.
+ *
+ * @param  {String} `dest`
+ * @param  {String} `str`
+ * @param  {Options} `options`
+ * @api public
+ */
+
+exports.writeJSON = function(dest, str, options, cb) {
+  if (typeof options === 'function') {
+    cb = options; options = {};
   }
-  fs.readdir(dirpath, function (err, files) {
+
+  var opts = extend({indent: 2}, options);
+
+  str = JSON.stringify(str, null, opts.indent);
+  exports.writeFile(dest, str, cb);
+};
+
+/**
+ * Synchronously write YAML to disk, creating any
+ * intermediary directories if they don't exist.
+ *
+ * @param  {String} `dest`
+ * @param  {String} `str`
+ * @param  {Options} `options`
+ * @api public
+ */
+
+exports.writeYAMLSync = function(dest, str, options) {
+  var opts = extend({indent: 2}, options);
+  var res = YAML.dump(str, null, opts.indent);
+  exports.writeFileSync(dest, res);
+};
+
+/**
+ * Aynchronously write YAML to disk, creating any
+ * intermediary directories if they don't exist.
+ *
+ * @param  {String} `dest`
+ * @param  {String} `str`
+ * @param  {Options} `options`
+ * @api public
+ */
+
+exports.writeYAML = function(dest, str, options, cb) {
+  if (typeof options === 'function') {
+    cb = options; options = {};
+  }
+  var opts = extend({indent: 2}, options);
+
+  str = YAML.dump(str, null, opts.indent);
+  exports.writeFile(dest, str, cb);
+};
+
+/**
+ * Synchronously write JSON or YAML to disk, creating any
+ * intermediary directories if they don't exist. Data
+ * type is determined by the `dest` file extension.
+ *
+ * ```js
+ * writeDataSync('foo.yml', {foo: "bar"});
+ * ```
+ *
+ * @param  {String} `dest`
+ * @param  {String} `str`
+ * @param  {Options} `options`
+ * @api public
+ */
+
+exports.writeDataSync = function(dest, str, options) {
+  var defaults = {ext: exports.ext(dest), indent: 2};
+  var opts = extend({}, defaults, options);
+  var writer = exports.writeJSONSync;
+
+  if (opts.ext[0] === '.') {
+    opts.ext = opts.ext.slice(1);
+  }
+
+  switch (opts.ext) {
+    case 'json':
+      writer = exports.writeJSONSync;
+      break;
+    case 'yml':
+    case 'yaml':
+      writer = exports.writeYAMLSync;
+      break;
+    }
+  return writer(dest, str, opts);
+};
+
+/**
+ * Asynchronously write JSON or YAML to disk, creating any
+ * intermediary directories if they don't exist. Data
+ * type is determined by the `dest` file extension.
+ *
+ * ```js
+ * writeDataSync('foo.yml', {foo: "bar"});
+ * ```
+ *
+ * @param  {String} `dest`
+ * @param  {String} `str`
+ * @param  {Options} `options`
+ * @api public
+ */
+
+exports.writeData = function(dest, str, options, cb) {
+  if (typeof options === 'function') {
+    cb = options; options = {};
+  }
+  var defaults = {ext: exports.ext(dest), indent: 2};
+  var opts = extend({}, defaults, options);
+  var writer = exports.writeJSON;
+  var ext = opts.ext;
+
+  if (ext[0] === '.') {
+    ext = ext.slice(1);
+  }
+
+  switch (opts.ext) {
+    case 'json':
+      writer = exports.writeJSON;
+      break;
+    case 'yml':
+    case 'yaml':
+      writer = exports.writeYAML;
+      break;
+    }
+  writer(dest, str, options, cb);
+};
+
+/**
+ * Copy files synchronously;
+ *
+ * @param  {String} `src`
+ * @param  {String} `dest`
+ * @api public
+ */
+
+exports.copyFileSync = function(src, dest) {
+  exports.writeFileSync(dest, exports.readFileSync(src));
+};
+
+/**
+ * Asynchronously remove dirs and child dirs that exist.
+ *
+ * @param  {String} `dir`
+ * @param  {Function} `cb
+ * @return {Function}
+ * @api public
+ */
+
+exports.rmdir = function(dir, cb) {
+  if (typeof cb !== 'function') {
+    cb = function () {};
+  }
+
+  fs.readdir(dir, function (err, files) {
     if (err) {
-      return callback(err);
+      return cb(err);
     }
     async.each(files, function (segment, next) {
-      var dirpath = path.join(dirpath, segment);
-      fs.stat(dirpath, function (err, stats) {
+      var dir = path.join(dir, segment);
+      fs.stat(dir, function (err, stats) {
         if (err) {
-          return callback(err);
+          return cb(err);
         }
         if (stats.isDirectory()) {
-          rimraf(dirpath, next);
+          rimraf(dir, next);
         } else {
-          fs.unlink(dirpath, next);
+          fs.unlink(dir, next);
         }
       });
     }, function () {
-      fs.rmdir(dirpath, callback);
+      fs.rmdir(dir, cb);
     });
   });
 };
 
+
 /**
- *  Delete folders and files recursively
+ * Delete folders and files recursively. Pass a callback
+ * as the last argument to use async.
+ *
+ * @param  {String} `patterns` Glob patterns to use.
+ * @param  {String} `options` Options for globby.
+ * @param  {Function} `cb`
+ * @api public
+ * @api public
  */
 
-file.delete = function (patterns, options, cb) {
+exports.del = function(patterns, opts, cb) {
   var args = [].slice.call(arguments);
   var last = args[args.length - 1];
 
   if (typeOf(last) === 'function') {
-    file.deleteAsync(patterns, options);
+    exports.deleteAsync(patterns, opts);
   } else {
-    file.deleteSync(patterns, options);
+    exports.deleteSync(patterns, opts);
   }
 };
 
-file.deleteAsync = function (patterns, options, cb) {
-  if (typeof options !== 'object') {
-    cb = options;
-    options = {};
+/**
+ * Asynchronously delete folders and files.
+ *
+ * @param  {String} `patterns` Glob patterns to use.
+ * @param  {String} `opts` Options for globby.
+ * @param  {Function} `cb`
+ * @api private
+ */
+
+exports.deleteAsync = function(patterns, opts, cb) {
+  if (typeof opts !== 'object') {
+    cb = opts;
+    opts = {};
   }
 
-  globby(patterns, options, function (err, files) {
+  glob(patterns, opts, function (err, files) {
     if (err) {
       cb(err);
       return;
     }
     async.each(files, function (filepath, next) {
-      if (options.cwd) {
-        filepath = path.resolve(options.cwd, filepath);
+      if (opts.cwd) {
+        filepath = path.resolve(opts.cwd, filepath);
       }
 
       del(filepath, next);
@@ -478,280 +663,265 @@ file.deleteAsync = function (patterns, options, cb) {
   });
 };
 
-file.deleteSync = function (patterns, options) {
-  globby.sync(patterns, options).forEach(function (filepath) {
-    if (options.cwd) {
-      filepath = path.resolve(options.cwd, filepath);
+/**
+ * Synchronously delete folders and files.
+ *
+ * @param  {String} `patterns` Glob patterns to use.
+ * @param  {String} `options` Options for globby.
+ * @param  {Function} `cb`
+ * @api private
+ */
+
+exports.deleteSync = function(patterns, options) {
+  var opts = extend({cwd: process.cwd()}, options);
+  glob.sync(patterns, opts).forEach(function (filepath) {
+    if (opts.cwd) {
+      filepath = path.resolve(opts.cwd, filepath);
     }
     del.sync(filepath);
   });
 };
 
 /**
- * Path utils
+ * Return the file extension.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ * @api public
  */
 
-/**
- * Directory / Segments
- */
-
-// The last segment of a filepath
-file.lastSegment = function () {
-  var filepath = path.join.apply(path, arguments);
-  return _.compact(filepath.split(path.sep)).pop();
-};
-
-// The last segment of a filepath
-file.firstSegment = function () {
-  var filepath = path.join.apply(path, arguments);
-  return _.compact(filepath.split(path.sep)).slice(0, 1)[0];
-};
-
-// First segment of a file path
-file.firstDir = file.firstSegment;
-
-// Directory path
-file.dirname = function () {
-  var filepath = path.join.apply(path, arguments).split(path.sep);
-  var dirlen = filepath.length - 1;
-  var dir = file.normalizeSlash(filepath.splice(0, dirlen).join(path.sep));
-  return file.addTrailingSlash(dir);
-};
-
-// Directory path
-file.dir = function () {
-  var filepath = path.join.apply(path, arguments);
-  if (file.endsWith(filepath, path.extname(filepath))) {
-    filepath = file.removeFilename(filepath);
-    return filepath;
-  }
-  return filepath;
-};
-
-// Last dictory path segment, excluding the filename
-file.lastDir = function () {
-  var filepath = path.join.apply(path, arguments);
-  if (file.hasExt(file.lastSegment(filepath))) {
-    filepath = file.removeFilename(filepath);
-  }
-  var segments = file.dir(filepath).split(path.sep);
-  // return _.compact(segments).splice(-1,1)[0];
-  return _.compact(segments).pop();
+exports.ext = function(filepath) {
+  return path.extname(filepath);
 };
 
 /**
- * Path "endings"
+ * Directory path excluding filename.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ * @api public
  */
 
-// The last character in a filepath. 'foo/bar/baz/' => '/'
-file.lastChar = function (filepath) {
-  return _.toArray(filepath).pop();
-};
-
-// Returns true if the filepath ends with the suffix
-file.endsWith = function (filepath, suffix) {
-  filepath = path.normalize(filepath);
-  suffix = path.normalize(suffix);
-  return filepath.indexOf(suffix, filepath.length - suffix.length) !== -1;
+exports.dirname = function(filepath) {
+  return isFile(filepath)
+    ? path.dirname(filepath)
+    : filepath;
 };
 
 /**
- * Trailing slash
+ * Return an array of path segments.
+ *
+ * @param  {String} `filepath`
+ * @return {Array}
  */
 
-// Remove the trailing slash from a file path
-file.removeTrailingSlash = function () {
-  var filepath = path.join.apply(path, arguments);
-  var sep = new RegExp(file.escapeRegex(path.sep) + '+$');
-  return filepath.replace(sep, '');
-};
-
-// Add a trailing slash to the filepath, does NOT consult
-// the file system to check if it's a file or a directory.
-file.addTrailingSlash = function () {
-  var filepath = path.join.apply(path, arguments);
-  if (filepath.charAt(filepath.length - 1) !== path.sep) {
-    if (!file.hasExt(filepath)) {
-      filepath += path.sep;
-    }
-  }
-  return filepath;
-};
-
-// Ensure that filepath has trailing slash. Alternate
-// to `addTrailingSlash`. One of these will be deprecated
-// after more tests, and we'll keep the name `slashify`.
-file.slashify = function () {
-  var filepath = path.join.apply(path, arguments);
-  var last = _.last((filepath).split('/'));
-  if (last.indexOf('.') === -1) {
-    return filepath.replace(/\/$/, '') + '/';
-  } else {
-    return filepath;
-  }
+var segments = exports.segments = function(filepath) {
+  return filepath.split(/[\\\/]/g);
 };
 
 /**
- * File name
+ * The last `n` segments of a filepath. If a number
+ * isn't passed for `n`, the last segment is returned.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ * @api public
  */
 
-// Returns a filename
-file.filename = function () {
-  var filepath = path.join.apply(path, arguments);
-  var re = /[\w.-]+$/;
-  try {
-    var test = re.exec(filepath)[0];
-    return test;
-  } catch (e) {
-    return '';
-  }
+exports.last = function(filepath, num) {
+  var seg = segments(filepath);
+  return seg.slice(-(num || 1))
+    .join(path.sep);
 };
 
-file.getFilename = function () {
-  var filepath = path.join.apply(path, arguments);
-  return filepath.split(path.sep).pop().split('/').pop();
+/**
+ * The first `n` segments of a filepath. If a number
+ * isn't passed for `n`, the first segment is returned.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ * @api public
+ */
+
+exports.first = function(filepath, num) {
+  var seg = segments(filepath);
+  return seg.slice(num || 1)
+    .join(path.sep);
 };
 
-// Strip the filename from a file path
-file.removeFilename = function () {
-  var filepath = path.join.apply(path, arguments);
-  if (file.hasExt(file.lastSegment(filepath))) {
-    filepath = filepath.replace(/[^\/|\\]*$/, '');
+/**
+ * Returns the last character in `filepath`
+ *
+ * ```
+ * lastChar('foo/bar/baz/');
+ * //=> '/'
+ * ```
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ * @api public
+ */
+
+exports.lastChar = function(filepath) {
+  var len = filepath.length;
+  return filepath[len - 1];
+};
+
+/**
+ * Remove a trailing slash from a filepath
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ */
+
+var removeSlash = exports.removeSlash = function(filepath) {
+  return filepath.replace(/[\\\/]$/, '');
+};
+
+/**
+ * Add a trailing slash to the filepath.
+ *
+ * Note, this does _not_ consult the file system
+ * to check if the filepath is file or a directory.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ * @api public
+ */
+
+exports.addSlash = function(filepath) {
+  if (!/\./.test(path.basename(filepath))) {
+    return removeSlash(filepath) + path.sep;
   }
   return filepath;
 };
 
 /**
- * Basename
+ * Normalize a filepath and remove trailing slashes.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ * @api public
  */
 
-// Filename without extension
-file.basename = function () {
-  var filepath = path.join.apply(path, arguments);
-  return path.basename(filepath, path.extname(filepath));
-};
-
-// Filename without extension. Differs slightly from basename
-file.base = function () {
-  var filepath = path.join.apply(path, arguments);
-  var name = path.basename(filepath, path.extname(filepath));
-  return name.split('.')[0];
-};
-// Alias
-file.name = file.base;
-
-/**
- * Extension
- */
-
-// File extension without the dot
-file.ext = function () {
-  var filepath = path.join.apply(path, arguments);
-  return path.extname(filepath).replace(/\./, '');
-};
-
-// Get the _last_ file extension.
-// @example 'foo/bar/file.tmpl.md' => 'md'
-file.lastExt = function () {
-  var filepath = path.join.apply(path, arguments);
-  var sep = file.escapeRegex(path.sep);
-  var ext = new RegExp('^.*?\\.([^.|' + sep + ']*)$', 'g');
-  var segments = ext.exec(filepath);
-  return segments && segments[1].length > 0 ? segments[1] : '';
-};
-
-// Returns true if the filepath ends in a file with an extension
-file.hasExt = function () {
-  var filepath = path.join.apply(path, arguments);
-  var last = file.lastSegment(filepath);
-  return /\./.test(last);
-};
-
-// Returns true if the filepath has one of the given extensions
-file.containsExt = function (filepath, ext) {
-  ext = file.arrayify(ext);
-  if (ext.length > 1) {
-    ext = '?:' + ext.join('|');
-  } else {
-    ext = ext.join('');
-  }
-  return new RegExp('\\.(' + ext + ')$').test(filepath);
-};
-
-// Return a list of files with the given extension.
-file.withExt = function (filepath, ext) {
-  var files = fs.readdirSync(filepath);
-  var list = [];
-  files.forEach(function (filename) {
-    if (file.containsExt(filename, ext)) {
-      list.push(filename);
-    }
-  });
-  return list;
+exports.normalizePath = function(filepath) {
+  return removeSlash(path.normalize(filepath));
 };
 
 /**
- * Boolean checks
+ * Resolve a filepath, also normalizes and removes
+ * trailing slashes.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
  */
+
+var resolve = exports.resolve = function(filepath) {
+  var args = [].slice.call(arguments);
+  var paths = path.resolve.apply(path, args);
+  return exports.normalizePath(paths);
+};
 
 /**
- * The following functions were sourced from grunt.file
- * - isPathAbsolute
- * - arePathsEquivalent
- * - doesPathContain
- * - isPathCwd
- * - isPathInCwd
- * https://github.com/gruntjs/grunt/blob/master/lib/grunt/file.js
- * https://github.com/gruntjs/grunt/blob/master/LICENSE-MIT
+ * Resolve the relative path from `a` to `b.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ * @api public
  */
 
-// True if the path is absolute
-file.isPathAbsolute = function () {
-  var filepath = path.join.apply(path, arguments);
-  return path.resolve(filepath) === file.removeTrailingSlash(filepath);
+exports.relative = function(a, b) {
+  return rel.apply(rel, arguments);
 };
 
-// True if the specified paths refer to the same path.
-file.arePathsEquivalent = function (first) {
-  first = path.resolve(first);
-  for (var i = 1; i < arguments.length; i++) {
-    if (first !== path.resolve(arguments[i])) {
-      return false;
-    }
-  }
-  return true;
+/**
+ * Return `true` if the path is absolute.
+ *
+ * @param  {[type]}  filepath
+ * @return {Boolean}
+ * @api public
+ */
+
+exports.isAbsolute = function(filepath) {
+  return isAbs.apply(isAbs, arguments);
 };
 
-// True if descendant path(s) contained within ancestor path.
-// Note: does not test if paths actually exist.
-file.doesPathContain = function (ancestor) {
+/**
+ * Return `true` if path `a` is the same as path `b.
+ *
+ * @param  {String} `filepath`
+ * @param  {String} `a`
+ * @param  {String} `b`
+ * @return {Boolean}
+ * @api public
+ */
+
+exports.equivalent = function(a, b) {
+  return resolve(a) === resolve(b);
+};
+
+/**
+ * True if descendant path(s) contained within ancestor path.
+ * Note: does not test if paths actually exist.
+ *
+ * Sourced from [Grunt].
+ *
+ * @param  {String} `ancestor` The starting path.
+ * @return {Boolean}
+ * @api public
+ */
+
+exports.doesPathContain = function(ancestor) {
   ancestor = path.resolve(ancestor);
-  var relative;
-  for (var i = 1; i < arguments.length; i++) {
-    relative = path.relative(path.resolve(arguments[i]), ancestor);
-    if (relative === '' || /\w+/.test(relative)) {
+
+  var args = [].slice.call(arguments, 1);
+  var len = arguments.length;
+  if (len === 0) {
+    return false;
+  }
+
+  var rel;
+  for (var i = 0; i < len; i++) {
+    rel = path.relative(resolve(args[i]), ancestor);
+    if (rel === '' || /\w+/.test(rel)) {
       return false;
     }
   }
   return true;
 };
 
-// True if a filepath is the CWD.
-file.isPathCwd = function () {
-  var filepath = path.join.apply(path, arguments);
+/**
+ * True if a filepath is the CWD.
+ *
+ * Sourced from [Grunt].
+ *
+ * @param  {String} `filepath`
+ * @return {Boolean}
+ * @api public
+ */
+
+exports.isPathCwd = function(filepath) {
   try {
-    return file.arePathsEquivalent(process.cwd(), fs.realpathSync(filepath));
-  } catch (e) {
+    var actual = fs.realpathSync(filepath);
+    return exports.equivalent(process.cwd(), actual);
+  } catch (err) {
     return false;
   }
 };
 
-// True if a filepath is contained within the CWD.
-file.isPathInCwd = function () {
-  var filepath = path.join.apply(path, arguments);
+/**
+ * True if a filepath is contained within the CWD.
+ *
+ * @param  {String} `filepath`
+ * @return {Boolean}
+ * @api public
+ */
+
+exports.isPathInCwd = function(filepath) {
   try {
-    return file.doesPathContain(process.cwd(), fs.realpathSync(filepath));
-  } catch (e) {
+    var actual = fs.realpathSync(filepath);
+    return exports.doesPathContain(process.cwd(), actual);
+  } catch (err) {
     return false;
   }
 };
