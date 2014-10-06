@@ -23,13 +23,19 @@
     "node": ">= 0.8.0"
   },
   "dependencies": {
+    "array-slice": "^0.2.0",
     "async": "~0.6.2",
+    "delete": "^0.1.5",
+    "globby": "^0.1.1",
     "globule": "~0.2.0",
     "graceful-fs": "~2.0.3",
     "js-yaml": "~3.0.2",
+    "kind-of": "^0.1.0",
     "lodash": "~2.4.1",
     "mkdirp": "~0.3.5",
-    "rimraf": "~2.2.6"
+    "read-data": "^0.1.1",
+    "rimraf": "~2.2.6",
+    "write": "^0.1.1"
   },
   "devDependencies": {
     "chai": "~1.8.1",

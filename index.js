@@ -1,207 +1,170 @@
-/**
+/*!
  * fs-utils <https://github.com/assemble/fs-utils>
  *
- * Copyright (c) 2014 Jon Schlinkert, Brian Woodward, contributors.
+ * Copyright (c) 2014 Jon Schlinkert, Brian Woodward.
  * Licensed under the MIT license.
  */
 
-const fs = require('graceful-fs');
-const os = require('os');
-const path = require('path');
-const async = require('async');
-const glob = require('globule');
-const rimraf = require('rimraf');
-const YAML = require('js-yaml');
-const _ = require('lodash');
-const file = module.exports = {};
+'use strict';
 
+var fs = require('graceful-fs');
+var os = require('os');
+var path = require('path');
+var del = require('delete');
+var async = require('async');
+var rimraf = require('rimraf');
+var YAML = require('js-yaml');
+var typeOf = require('kind-of');
+var _ = require('lodash');
+var file = module.exports = {};
 
+function stripcr(str) {
+  return str.replace(/\r/g, '');
+}
 
-/**
- * Utils
- */
-
-
-// Build regex based on os EOL
-file.EOLre = new RegExp(os.EOL, 'g');
-
-file.arrayify = function(val) {
-  return !Array.isArray(val) ? [val] : val;
-};
-
-file.escapeRegex = function(re) {
-  return re.replace(/(.)/g, '\\$1');
-};
-
-// Normalize paths to use `/`
-file.pathSepRegex = /[\/\\]/g;
-file.normalizeSlash = function(str) {
-  return str.replace(file.pathSepRegex, '/');
-};
-file.slashify = file.pathSepRegex;
-
-// Normalize line endings
-file.normalizeEOL = function(str) {
-  return str.replace(/\r\n|\n/g, os.EOL);
-};
-
-// Normalize to newlines
-file.normalizeNL = function(str) {
-  return str.replace(/\r\n|\n/g, '\n');
-};
-
-// Default encoding
-file.encoding = function(options) {
-  options = options || {};
-  return options.encoding || 'utf8';
-};
-
-file.preserveBOM = false;
-file.stripBOM = function(str) {
-  // Transform EOL
-  var contents = (os.EOL === '\n') ? str : str.replace(os.EOL, '\n');
-  // Strip UTF BOM
-  if (!file.preserveBOM && contents.charCodeAt(0) === 0xFEFF) {
-    contents = contents.substring(1);
-    contents = contents.replace(/^\uFEFF/, '');
-  }
-  return contents;
-};
-
-
-/**
- * CWD
- */
-
-// Change the current working directory (CWD)
-file.setCWD = function() {
-  var dir = path.join.apply(path, arguments);
-  process.chdir(dir);
-};
-
+function stripBOM(str) {
+  return str.replace(/^\uFEFF/, '');
+}
 
 /**
  * Boolean checks
  */
 
-// True if the filepath actually exist.
-file.exists = function() {
-  var filepath = path.join.apply(path, arguments);
+/**
+ * True if the filepath actually exist.
+ *
+ * @param  {[type]} filepath
+ * @return {[type]}
+ */
+
+function exists(filepath) {
   return fs.existsSync(filepath);
-};
-
-// True if the file exists and is NOT empty.
-file.isEmptyFile = function() {
-  var filepath = path.join.apply(path, arguments);
-  if (!file.exists(filepath)) {return false;}
-  filepath = file.readFileSync(filepath);
-  return (filepath.length === 0 || filepath === '') ? true : false;
-};
-
-// True if the filepath is a directory.
-file.isDir = function() {
-  var filepath = path.join.apply(path, arguments);
-  if (!fs.existsSync(filepath)) {return false;}
-  return fs.statSync(filepath).isDirectory();
-};
-
-// True if the filepath is a file.
-file.isFile = function() {
-  var filepath = path.join.apply(path, arguments);
-  if (!fs.existsSync(filepath)) {return false;}
-  return fs.statSync(filepath).isFile();
-};
-
-// True if the filepath is a symbolic link.
-file.isLink = function() {
-  var filepath = path.join.apply(path, arguments);
-  return file.exists(filepath) && fs.lstatSync(filepath).isSymbolicLink();
-};
-
-
+}
 
 /**
- * Stats
+ * Return `true` if the file exists and is empty.
+ *
+ * @param  {String} `filepath`
+ * @return {Boolean}
  */
 
-file.getStatsSync = function (filepath) {
-  try {
-    return fs.statSync(filepath);
-  } catch (err) {
-    err.message = 'Failed to retrieve "' + filepath + '" stats: ' + err.message;
-    throw err;
+function isEmpty(filepath) {
+  if (!exists(filepath)) {
+    return false;
   }
-};
-
-file.getStats = function (filepath, callback) {
-  try {
-    return fs.stat(filepath, callback);
-  } catch (err) {
-    err.message = 'Failed to retrieve "' + filepath + '" stats: ' + err.message;
-    return callback(err, null);
-  }
-};
-
-
+  var str = fs.readFileSync(filepath, 'utf8');
+  return !!str.length > 0;
+}
 
 /**
- * Read
+ * Return the results from a call to `fs.statSync()`.
+ *
+ * @param  {String} `filepath`
+ * @return {Object}
  */
 
-// Read file synchronously
-file.readFileSync = function(filepath, options) {
-  options = options || {};
-  var buffer = fs.readFileSync(String(filepath), file.encoding(options));
-  try {
-    return file.stripBOM(buffer);
-  } catch (err) {
-    err.message = 'Failed to read "' + filepath + '": ' + err.message;
-    throw err;
+function stats(filepath) {
+  return fs.statSync(filepath);
+}
+
+/**
+ * Return `true` if the filepath is a directory.
+ *
+ * @param  {String} `filepath`
+ * @return {Boolean}
+ */
+
+function isDir(filepath) {
+  if (!fs.existsSync(filepath)) {
+    return false;
   }
-};
+  return stats(filepath).isDirectory();
+}
 
-// Read file
-file.readFile = function (filepath, options, callback) {
-  options = options || {};
+/**
+ * True if the filepath is a file.
+ *
+ * @param  {String} `filepath`
+ * @return {Boolean}
+ */
 
+function isFile(filepath) {
+  if (!fs.existsSync(filepath)) {
+    return false;
+  }
+  return stats(filepath).isFile();
+}
+
+/**
+ * True if the filepath is a symbolic link.
+ *
+ * @param  {String} `filepath`
+ * @return {Boolean}
+ */
+
+function isLink(filepath) {
+  return file.exists(filepath)
+    && fs.lstatSync(filepath).isSymbolicLink();
+}
+
+/**
+ * Read a file synchronously. Also strips any byte order
+ * marks.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ */
+
+function readFileSync(filepath, enc) {
+  var str = fs.readFileSync(String(filepath), enc || 'utf8');
+  return stripBOM(str);
+}
+
+/**
+ * Read a file asynchronously. Also strips any byte order
+ * marks.
+ *
+ * @param  {String} `filepath`
+ * @return {String}
+ */
+
+function readFile(filepath, options, callback) {
   if (_.isFunction(options)) {
     callback = options;
     options = {};
   }
-
   async.waterfall([
-
     function (next) {
-      fs.readFile(String(filepath), file.encoding(options), next);
+      fs.readFile(String(filepath), enc || 'utf8', next);
     }, function (contents, next) {
       try {
-        next(null, file.stripBOM(contents));
+        next(null, stripBOM(contents));
       } catch (err) {
         err.message = 'Failed to read "' + filepath + '": ' + err.message;
         next(err);
       }
     }
-  ],
-    callback);
+  ], callback);
+}
 
-};
+/**
+ * Read a file synchronously and parse contents as JSON.
+ * marks.
+ *
+ * @param  {String} `filepath`
+ * @return {Object}
+ */
 
-// Read JSON file synchronously and parse content as JSON
-file.readJSONSync = function(filepath) {
-  var buffer = file.readFileSync(filepath);
-  try {
-    return JSON.parse(buffer);
-  } catch (err) {
-    err.message = 'Failed to parse "' + filepath + '": ' + err.message;
-    throw err;
-  }
-};
+function readJSONSync(filepath) {
+  return JSON.parse(fs.readFileSync(filepath, 'utf8'));
+}
 
 // Read JSON file asynchronously and parse content as JSON
-file.readJSON = function (filepath, callback) {
+function readJSON(filepath, callback) {
   async.waterfall([
-    function (next) { fs.readFile(filepath, next); },
-    function (contents, next) {
+    function (next) {
+      fs.readFile(filepath, next);
+    }, function (contents, next) {
       try {
         next(null, JSON.parse(contents));
       } catch (err) {
@@ -209,12 +172,12 @@ file.readJSON = function (filepath, callback) {
         next(err);
       }
     }
-  ],
-  callback);
-};
+  ], callback);
+}
+
 
 // Read YAML file synchronously and parse content as JSON
-file.readYAMLSync = function (filepath) {
+function readYAMLSync(filepath) {
   var buffer = file.readFileSync(filepath);
   try {
     return YAML.load(buffer);
@@ -222,12 +185,14 @@ file.readYAMLSync = function (filepath) {
     err.message = 'Failed to parse "' + filepath + '": ' + err.message;
     throw err;
   }
-};
+}
 
 // Read YAML file synchronously and parse content as JSON
-file.readYAML = function (filepath, callback) {
+function readYAML(filepath, callback) {
   async.waterfall([
-    function (next) { file.readFile(filepath, next); },
+    function (next) {
+      file.readFile(filepath, next);
+    },
     function (contents, next) {
       try {
         next(null, YAML.load(contents));
@@ -236,53 +201,50 @@ file.readYAML = function (filepath, callback) {
         next(err);
       }
     }
-  ],
-  callback);
-};
+  ], callback);
+}
 
 // Read optional JSON
 // Ben Alman, https://gist.github.com/2876125
-file.readOptionalJSON = function(filepath) {
+function readOptionalJSON(filepath) {
   var buffer = {};
   try {
     buffer = file.readJSONSync(filepath);
   } catch (e) {}
   return buffer;
-};
+}
 
-file.readOptionalYAML = function(filepath) {
+function readOptionalYAML(filepath) {
   var buffer = {};
   try {
     buffer = file.readYAMLSync(filepath);
   } catch (e) {}
   return buffer;
-};
+}
 
 // Determine the reader based on extension.
-file.readDataSync = function (filepath, options) {
+function readDataSync(filepath, options) {
   var opts = _.extend({}, options);
   var ext = opts.lang || opts.parse || file.ext(filepath);
   var reader = file.readJSONSync;
-  switch(ext) {
-    case 'json':
-      reader = file.readJSONSync;
-      break;
-    case 'yml':
-    case 'yaml':
-      reader = file.readYAMLSync;
-      break;
+  switch (ext) {
+  case 'json':
+    reader = file.readJSONSync;
+    break;
+  case 'yml':
+  case 'yaml':
+    reader = file.readYAMLSync;
+    break;
   }
   return reader(filepath, options);
-};
+}
 
 // Determine the reader based on extension (async).
-file.readData = function (filepath, options, callback) {
-
+function readData(filepath, options, callback) {
   if (_.isFunction(options || {})) {
     callback = options;
     options = {};
   }
-
   var opts = _.extend({}, options);
   var ext = opts.parse || file.ext(filepath);
   var reader = file.readJSON;
@@ -294,93 +256,15 @@ file.readData = function (filepath, options, callback) {
     case 'yaml':
       reader = file.readYAML;
       break;
-  }
-  reader(filepath, callback);
-};
-
-
-
-/**
- * Expand (globbing / minimatch)
- * Most of these methods are a thin wrapper around globule
- */
-
-_.extend(file, glob);
-
-file.expand = glob.find;
-file.expandMapping = glob.findMapping;
-
-
-// Returns the resolved filepath for a specific file using
-// globbing patterns. If multiple matches are found, only
-// the first is returned
-file.findFile = function() {
-  var filepath = path.join.apply(path, arguments);
-  var str = glob.find(filepath, {filter: 'isFile'})[0];
-  return str ? String(path.resolve(str)) : null;
-};
-
-// Returns resolved dirpath for a specific directory using
-// globbing patterns. If multiple matches are found, only
-// the first direc returned
-file.findDir = function() {
-  var filepath = path.join.apply(path, arguments);
-  var str = glob.find(filepath, {filter: 'isDirectory'})[0];
-  return str ? String(path.resolve(str)) : null;
-};
-
-/**
- * Expand AND read JSON and YAML files.
- * @param  {String} filepath The filepath to read or string pattern to expand then read
- * @param  {Object} options  Object of options. 'namespace' will use the basename of
- *                           the source file as the name of the returned object
- * @return {Object}          Object of metadata
- */
-
-// Should "expandData" actually read in the files,
-// and "expandData" not? If so, we should deprecate
-// the latter and make this change.
-file.expandData = function (patterns, options) {
-  var opts = options || {};
-  opts.data = opts.data || {};
-  var contents;
-
-  patterns = file.arrayify(patterns);
-
-  file.expand(patterns, opts).map(function (filepath) {
-    var name = file.name(filepath);
-    if (file.isEmptyFile(filepath)) {
-      if(opts.verbose) {console.warn('Skipping empty file:'.yellow, filepath);}
-    } else {
-      try {
-        // If it's a string, try to require it.
-        contents = require(path.resolve(filepath));
-      } catch(e) {
-        // If that doesn't work, try to read it directly.
-        contents = file.readDataSync(filepath);
-      }
-      // `namespace` merges the data from each file into an object
-      // where the top-level property is the basename of the file itself
-      if(opts.namespace === true) {
-        // Extend the data into an object named for the file.
-        opts.data[name] = _.cloneDeep(_.extend(opts.data, contents));
-      } else if(opts.namespace === 'only') {
-        opts.data[name] = _.cloneDeep(_.extend({}, opts.data, contents));
-      } else {
-        opts.data = _.extend(opts.data, contents);
-      }
     }
-  });
-  return opts.data;
-};
-file.expandDataFiles = file.expandData;
-
+  reader(filepath, callback);
+}
 
 /**
  * Make directories
  */
 
-file.mkdir = function (dest, callback) {
+function mkdir(dest, callback) {
   var destpath = path.dirname(dest);
   fs.exists(destpath, function (exist) {
     if (exist) {
@@ -391,10 +275,10 @@ file.mkdir = function (dest, callback) {
       });
     }
   });
-};
+}
 
 // Make any dirs and intermediate dirs don't exist
-file.mkdirSync = function (dirpath, mode) {
+function mkdirSync(dirpath, mode) {
   mode = mode || parseInt('0777', 8) & (~process.umask());
   if (!fs.existsSync(dirpath)) {
     var parentDir = path.dirname(dirpath);
@@ -405,44 +289,32 @@ file.mkdirSync = function (dirpath, mode) {
       fs.mkdirSync(dirpath, mode);
     }
   }
-};
-
-// Testing out the `mkdirp` lib as an alternative to
-// built-in mkdir functions.
-file.mkdirp = function (dir) {
-  require('mkdirp')(dir, function (err) {
-    if (err) {console.error(err); }
-  });
-};
-file.mkdirpSync = function (dir) {
-  require('mkdirp').sync(dir);
-};
-
-
+}
 
 /**
  * Write
  */
 
-file.writeFile = function (dest, content, callback) {
+function writeFile(dest, content, callback) {
   var destpath = path.dirname(dest);
   fs.exists(destpath, function (exists) {
     if (exists) {
       fs.writeFile(dest, content, callback);
     } else {
       file.mkdir(destpath, function (err) {
-        if (err) { callback(err); }
-        else {
+        if (err) {
+          callback(err);
+        } else {
           fs.writeFile(dest, content, callback);
         }
       });
     }
   });
+}
 
-};
 
 // Write files to disk, synchronously
-file.writeFileSync = function(dest, content, options) {
+function writeFileSync(dest, content, options) {
   options = options || {};
   var dirpath = path.dirname(dest);
   if (!file.exists(dirpath)) {
@@ -451,14 +323,14 @@ file.writeFileSync = function(dest, content, options) {
   fs.writeFileSync(dest, content, file.encoding(options));
 };
 
-file.writeJSONSync = function(dest, content, options) {
+function writeJSONSync(dest, content, options) {
   options = options || {};
   options.indent = options.indent || 2;
   content = JSON.stringify(content, null, options.indent);
   file.writeFileSync(dest, content);
 };
 
-file.writeJSON = function (dest, content, options, callback) {
+function writeJSON(dest, content, options, callback) {
   options = options || {};
   if (_.isFunction(options)) {
     callback = options;
@@ -469,14 +341,14 @@ file.writeJSON = function (dest, content, options, callback) {
   file.writeFile(dest, content, callback);
 };
 
-file.writeYAMLSync = function(dest, content, options) {
+function writeYAMLSync(dest, content, options) {
   options = options || {};
   options.indent = options.indent || 2;
   content = YAML.dump(content, null, options.indent);
   file.writeFileSync(dest, content);
 };
 
-file.writeYAML = function (dest, content, options, callback) {
+function writeYAML(dest, content, options, callback) {
   options = options || {};
   if (_.isFunction(options)) {
     callback = options;
@@ -488,21 +360,21 @@ file.writeYAML = function (dest, content, options, callback) {
 };
 
 // @example: file.writeDataSync('foo.yml', {foo: "bar"});
-file.writeDataSync = function(dest, content, options) {
+function writeDataSync(dest, content, options) {
   options = options || {};
   var ext = options.ext || path.extname(dest);
   var writer = file.writeJSONSync;
-  switch(ext) {
-    case '.json':
-    case 'json':
-      writer = file.writeJSONSync;
-      break;
-    case '.yml':
-    case 'yml':
-    case '.yaml':
-    case 'yaml':
-      writer = file.writeYAMLSync;
-      break;
+  switch (ext) {
+  case '.json':
+  case 'json':
+    writer = file.writeJSONSync;
+    break;
+  case '.yml':
+  case 'yml':
+  case '.yaml':
+  case 'yaml':
+    writer = file.writeYAMLSync;
+    break;
   }
   return writer(dest, content, options);
 };
@@ -516,21 +388,19 @@ file.writeData = function (dest, content, options, callback) {
   var ext = options.ext || path.extname(dest);
   var writer = file.writeJSON;
   switch (ext) {
-    case '.json':
-    case 'json':
-      writer = file.writeJSON;
-      break;
-    case '.yml':
-    case 'yml':
-    case '.yaml':
-    case 'yaml':
-      writer = file.writeYAML;
-      break;
+  case '.json':
+  case 'json':
+    writer = file.writeJSON;
+    break;
+  case '.yml':
+  case 'yml':
+  case '.yaml':
+  case 'yaml':
+    writer = file.writeYAML;
+    break;
   }
   writer(dest, content, options, callback);
 };
-
-
 
 /**
  * Copy files
@@ -541,22 +411,25 @@ file.copyFileSync = function (src, dest, options) {
   file.writeFileSync(dest, file.readFileSync(src), options || {});
 };
 
-
-
-
 /**
  * Remove directories
  */
 
 // Asynchronously remove dirs and child dirs that exist
 file.rmdir = function (dirpath, callback) {
-  if (!_.isFunction(callback)) {callback = function () {};}
+  if (!_.isFunction(callback)) {
+    callback = function () {};
+  }
   fs.readdir(dirpath, function (err, files) {
-    if (err) {return callback(err);}
+    if (err) {
+      return callback(err);
+    }
     async.each(files, function (segment, next) {
       var dirpath = path.join(dirpath, segment);
       fs.stat(dirpath, function (err, stats) {
-        if (err) {return callback(err); }
+        if (err) {
+          return callback(err);
+        }
         if (stats.isDirectory()) {
           rimraf(dirpath, next);
         } else {
@@ -569,86 +442,67 @@ file.rmdir = function (dirpath, callback) {
   });
 };
 
-// Synchronously remove dirs and child dirs that exist
-file.rmdirSync = function () {
-  var dirpath = path.join.apply(path, arguments);
-  if (fs.existsSync(dirpath)) {
-    var files = fs.readdirSync(dirpath);
-    for (var i = 0, l = files.length; i < l; i++) {
-      var filepath = path.join(dirpath, files[i]);
-      if (filepath === "." || filepath === "..") {
-        continue;
-      } else if (fs.statSync(filepath).isDirectory()) {
-        file.rmdirSync(filepath);
-      } else {
-        fs.unlinkSync(filepath);
+/**
+ *  Delete folders and files recursively
+ */
+
+file.delete = function (patterns, options, cb) {
+  var args = [].slice.call(arguments);
+  var last = args[args.length - 1];
+
+  if (typeOf(last) === 'function') {
+    file.deleteAsync(patterns, options);
+  } else {
+    file.deleteSync(patterns, options);
+  }
+};
+
+file.deleteAsync = function (patterns, options, cb) {
+  if (typeof options !== 'object') {
+    cb = options;
+    options = {};
+  }
+
+  globby(patterns, options, function (err, files) {
+    if (err) {
+      cb(err);
+      return;
+    }
+    async.each(files, function (filepath, next) {
+      if (options.cwd) {
+        filepath = path.resolve(options.cwd, filepath);
       }
-    }
-    fs.rmdirSync(dirpath);
-  }
+
+      del(filepath, next);
+    }, cb);
+  });
 };
 
-
-
-/**
- * Delete files
- */
-
-/**
- * file.delete was sourced and modified from grunt.file
- * https://github.com/gruntjs/grunt/blob/master/lib/grunt/file.js
- * https://github.com/gruntjs/grunt/blob/master/LICENSE-MIT
- */
-
-// Delete folders and files recursively
-file.delete = function(filepath, options) {
-  var opts = _.extend({force: false}, options);
-  filepath = String(filepath);
-
-  if (!file.exists(filepath)) {
-    console.warn('Cannot delete nonexistent file.');
-    return false;
-  }
-  // Only delete cwd or outside cwd if options.force is true.
-  if (!opts.force) {
-    if (file.isPathCwd(filepath)) {
-      console.warn('Cannot delete the current working directory.');
-      return false;
-    } else if (!file.isPathInCwd(filepath)) {
-      console.warn('Cannot delete files outside the current working directory.');
-      return false;
+file.deleteSync = function (patterns, options) {
+  globby.sync(patterns, options).forEach(function (filepath) {
+    if (options.cwd) {
+      filepath = path.resolve(options.cwd, filepath);
     }
-  }
-  try {
-    // Actually delete. Or not.
-    rimraf.sync(filepath);
-    return true;
-  } catch(err) {
-    var msg ='Unable to delete "' + filepath + '" file (' + err.message + ').';
-    throw new Error(msg, err);
-  }
+    del.sync(filepath);
+  });
 };
-
-
-
 
 /**
  * Path utils
  */
-
 
 /**
  * Directory / Segments
  */
 
 // The last segment of a filepath
-file.lastSegment = function() {
+file.lastSegment = function () {
   var filepath = path.join.apply(path, arguments);
   return _.compact(filepath.split(path.sep)).pop();
 };
 
 // The last segment of a filepath
-file.firstSegment = function() {
+file.firstSegment = function () {
   var filepath = path.join.apply(path, arguments);
   return _.compact(filepath.split(path.sep)).slice(0, 1)[0];
 };
@@ -657,7 +511,7 @@ file.firstSegment = function() {
 file.firstDir = file.firstSegment;
 
 // Directory path
-file.dirname = function() {
+file.dirname = function () {
   var filepath = path.join.apply(path, arguments).split(path.sep);
   var dirlen = filepath.length - 1;
   var dir = file.normalizeSlash(filepath.splice(0, dirlen).join(path.sep));
@@ -665,9 +519,9 @@ file.dirname = function() {
 };
 
 // Directory path
-file.dir = function() {
+file.dir = function () {
   var filepath = path.join.apply(path, arguments);
-  if(file.endsWith(filepath, path.extname(filepath))) {
+  if (file.endsWith(filepath, path.extname(filepath))) {
     filepath = file.removeFilename(filepath);
     return filepath;
   }
@@ -675,9 +529,9 @@ file.dir = function() {
 };
 
 // Last dictory path segment, excluding the filename
-file.lastDir = function() {
+file.lastDir = function () {
   var filepath = path.join.apply(path, arguments);
-  if(file.hasExt(file.lastSegment(filepath))) {
+  if (file.hasExt(file.lastSegment(filepath))) {
     filepath = file.removeFilename(filepath);
   }
   var segments = file.dir(filepath).split(path.sep);
@@ -685,24 +539,21 @@ file.lastDir = function() {
   return _.compact(segments).pop();
 };
 
-
 /**
  * Path "endings"
  */
 
 // The last character in a filepath. 'foo/bar/baz/' => '/'
-file.lastChar = function(filepath) {
+file.lastChar = function (filepath) {
   return _.toArray(filepath).pop();
 };
 
 // Returns true if the filepath ends with the suffix
-file.endsWith = function(filepath, suffix) {
+file.endsWith = function (filepath, suffix) {
   filepath = path.normalize(filepath);
   suffix = path.normalize(suffix);
   return filepath.indexOf(suffix, filepath.length - suffix.length) !== -1;
 };
-
-
 
 /**
  * Trailing slash
@@ -720,7 +571,7 @@ file.removeTrailingSlash = function () {
 file.addTrailingSlash = function () {
   var filepath = path.join.apply(path, arguments);
   if (filepath.charAt(filepath.length - 1) !== path.sep) {
-    if(!file.hasExt(filepath)) {
+    if (!file.hasExt(filepath)) {
       filepath += path.sep;
     }
   }
@@ -733,58 +584,55 @@ file.addTrailingSlash = function () {
 file.slashify = function () {
   var filepath = path.join.apply(path, arguments);
   var last = _.last((filepath).split('/'));
-  if(last.indexOf('.') === -1) {
+  if (last.indexOf('.') === -1) {
     return filepath.replace(/\/$/, '') + '/';
   } else {
     return filepath;
   }
 };
 
-
 /**
  * File name
  */
 
 // Returns a filename
-file.filename = function() {
+file.filename = function () {
   var filepath = path.join.apply(path, arguments);
   var re = /[\w.-]+$/;
   try {
     var test = re.exec(filepath)[0];
     return test;
-  } catch(e) {
+  } catch (e) {
     return '';
   }
 };
 
-file.getFilename = function() {
+file.getFilename = function () {
   var filepath = path.join.apply(path, arguments);
   return filepath.split(path.sep).pop().split('/').pop();
 };
 
 // Strip the filename from a file path
-file.removeFilename = function() {
+file.removeFilename = function () {
   var filepath = path.join.apply(path, arguments);
-  if(file.hasExt(file.lastSegment(filepath))) {
+  if (file.hasExt(file.lastSegment(filepath))) {
     filepath = filepath.replace(/[^\/|\\]*$/, '');
   }
   return filepath;
 };
-
-
 
 /**
  * Basename
  */
 
 // Filename without extension
-file.basename = function() {
+file.basename = function () {
   var filepath = path.join.apply(path, arguments);
   return path.basename(filepath, path.extname(filepath));
 };
 
 // Filename without extension. Differs slightly from basename
-file.base = function() {
+file.base = function () {
   var filepath = path.join.apply(path, arguments);
   var name = path.basename(filepath, path.extname(filepath));
   return name.split('.')[0];
@@ -792,21 +640,19 @@ file.base = function() {
 // Alias
 file.name = file.base;
 
-
-
 /**
  * Extension
  */
 
 // File extension without the dot
-file.ext = function() {
+file.ext = function () {
   var filepath = path.join.apply(path, arguments);
   return path.extname(filepath).replace(/\./, '');
 };
 
 // Get the _last_ file extension.
 // @example 'foo/bar/file.tmpl.md' => 'md'
-file.lastExt = function() {
+file.lastExt = function () {
   var filepath = path.join.apply(path, arguments);
   var sep = file.escapeRegex(path.sep);
   var ext = new RegExp('^.*?\\.([^.|' + sep + ']*)$', 'g');
@@ -815,21 +661,21 @@ file.lastExt = function() {
 };
 
 // Returns true if the filepath ends in a file with an extension
-file.hasExt = function() {
+file.hasExt = function () {
   var filepath = path.join.apply(path, arguments);
   var last = file.lastSegment(filepath);
   return /\./.test(last);
 };
 
 // Returns true if the filepath has one of the given extensions
-file.containsExt = function(filepath, ext) {
+file.containsExt = function (filepath, ext) {
   ext = file.arrayify(ext);
-  if(ext.length > 1) {
+  if (ext.length > 1) {
     ext = '?:' + ext.join('|');
   } else {
     ext = ext.join('');
   }
-  return new RegExp('\\.('+ext+')$').test(filepath);
+  return new RegExp('\\.(' + ext + ')$').test(filepath);
 };
 
 // Return a list of files with the given extension.
@@ -843,7 +689,6 @@ file.withExt = function (filepath, ext) {
   });
   return list;
 };
-
 
 /**
  * Boolean checks
@@ -867,42 +712,46 @@ file.isPathAbsolute = function () {
 };
 
 // True if the specified paths refer to the same path.
-file.arePathsEquivalent = function(first) {
+file.arePathsEquivalent = function (first) {
   first = path.resolve(first);
   for (var i = 1; i < arguments.length; i++) {
-    if (first !== path.resolve(arguments[i])) { return false; }
+    if (first !== path.resolve(arguments[i])) {
+      return false;
+    }
   }
   return true;
 };
 
 // True if descendant path(s) contained within ancestor path.
 // Note: does not test if paths actually exist.
-file.doesPathContain = function(ancestor) {
+file.doesPathContain = function (ancestor) {
   ancestor = path.resolve(ancestor);
   var relative;
   for (var i = 1; i < arguments.length; i++) {
     relative = path.relative(path.resolve(arguments[i]), ancestor);
-    if (relative === '' || /\w+/.test(relative)) { return false; }
+    if (relative === '' || /\w+/.test(relative)) {
+      return false;
+    }
   }
   return true;
 };
 
 // True if a filepath is the CWD.
-file.isPathCwd = function() {
+file.isPathCwd = function () {
   var filepath = path.join.apply(path, arguments);
   try {
     return file.arePathsEquivalent(process.cwd(), fs.realpathSync(filepath));
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 };
 
 // True if a filepath is contained within the CWD.
-file.isPathInCwd = function() {
+file.isPathInCwd = function () {
   var filepath = path.join.apply(path, arguments);
   try {
     return file.doesPathContain(process.cwd(), fs.realpathSync(filepath));
-  } catch(e) {
+  } catch (e) {
     return false;
   }
 };
