@@ -1,6 +1,6 @@
 {
   "name": "fs-utils",
-  "version": "0.4.3",
+  "version": "0.5.0",
   "description": "File system extras and utilities to extend the Node.js fs module.",
   "repository": {
     "type": "git",
@@ -23,17 +23,23 @@
     "node": ">= 0.8.0"
   },
   "dependencies": {
-    "async": "~0.6.2",
-    "globule": "~0.2.0",
-    "graceful-fs": "~2.0.3",
-    "js-yaml": "~3.0.2",
-    "lodash": "~2.4.1",
-    "mkdirp": "~0.3.5",
-    "rimraf": "~2.2.6"
+    "async": "^0.9.0",
+    "delete": "^0.1.5",
+    "extend-shallow": "^0.1.0",
+    "globby": "^0.1.1",
+    "graceful-fs": "^3.0.2",
+    "is-absolute": "^0.1.5",
+    "js-yaml": "^3.2.2",
+    "kind-of": "^0.1.0",
+    "lodash": "^2.4.1",
+    "relative": "^0.1.6",
+    "rimraf": "^2.2.8"
   },
   "devDependencies": {
-    "chai": "~1.8.1",
-    "mocha": "~1.17.0"
+    "mocha": "*",
+    "should": "^4.0.4",
+    "verb": ">= 0.2.6",
+    "verb-tag-jscomments": ">= 0.2.0"
   },
   "keywords": [
     "file system",
@@ -46,5 +52,10 @@
     "node.js",
     "path",
     "utils"
-  ]
+  ],
+  "homepage": "https://github.com/jonschlinkert/fs-utils",
+  "author": {
+    "name": "Jon Schlinkert",
+    "url": "https://github.com/jonschlinkert"
+  }
 }
