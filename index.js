@@ -15,7 +15,6 @@ var extend = require('extend-shallow');
 var glob = require('globby');
 var isAbs = require('is-absolute');
 var rel = require('relative');
-var rimraf = require('rimraf');
 var typeOf = require('kind-of');
 var YAML = require('js-yaml');
 var EOL = require('os').EOL;
@@ -609,7 +608,7 @@ exports.rmdir = function(dir, cb) {
           return cb(err);
         }
         if (stats.isDirectory()) {
-          rimraf(dir, next);
+          del(dir, next);
         } else {
           fs.unlink(dir, next);
         }
