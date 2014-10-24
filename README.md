@@ -23,14 +23,14 @@ var fs = require('fs-utils');
 ```
 
 ## API
-### [.stripcr](index.js#L31)
+### [.stripCR](index.js#L32)
 
 * `str` **{String}**    
 * `returns`: {String}  
 
 Strip carriage returns from a string.
 
-### [.stripBOM](index.js#L45)
+### [.stripBOM](index.js#L46)
 
 Strip byte order marks from a string.
 
@@ -39,35 +39,36 @@ Strip byte order marks from a string.
 
 See [BOM](http://en.wikipedia.org/wiki/Byte_order_mark)
 
-### [.forwardSlash](index.js#L57)
+### [.slashify](index.js#L59)
 
 * `str` **{String}**    
+* `stripTrailing` **{Boolean}**: False by default.    
 * `returns`: {String}  
 
 Normalize all slashes to forward slashes.
 
-### [.isEmpty](index.js#L98)
+### [.isEmpty](index.js#L99)
 
 * `filepath` **{String}**    
 * `returns`: {Boolean}  
 
 Return `true` if the file exists and is empty.
 
-### [.isDir](index.js#L114)
+### [.isDir](index.js#L115)
 
 * `filepath` **{String}**    
 * `returns`: {Boolean}  
 
 Return `true` if the filepath is a directory.
 
-### [.isLink](index.js#L145)
+### [.isLink](index.js#L146)
 
 * `filepath` **{String}**    
 * `returns`: {Boolean}  
 
 True if the filepath is a symbolic link.
 
-### [.glob](index.js#L159)
+### [.glob](index.js#L160)
 
 * `patterns` **{String|Array}**    
 * `returns`: {options}  
@@ -75,7 +76,7 @@ True if the filepath is a symbolic link.
 Glob files using [globby]. Or glob files synchronously
 with `glob.sync`.
 
-### [.readFileSync](index.js#L170)
+### [.readFileSync](index.js#L171)
 
 * `filepath` **{String}**    
 * `returns`: {String}  
@@ -83,7 +84,7 @@ with `glob.sync`.
 Read a file synchronously. Also strips any byte order
 marks.
 
-### [readFile](index.js#L190)
+### [readFile](index.js#L191)
 
 * `filepath` **{String}**    
 * `options` **{Object}**    
@@ -93,7 +94,7 @@ marks.
 
 Read a file asynchronously.
 
-### [.readJSONSync](index.js#L221)
+### [.readJSONSync](index.js#L222)
 
 * `filepath` **{String}**    
 * `returns`: {Object}  
@@ -101,7 +102,7 @@ Read a file asynchronously.
 Read a file synchronously and parse contents as JSON.
 marks.
 
-### [.readJSON](index.js#L234)
+### [.readJSON](index.js#L235)
 
 * `filepath` **{String}**    
 * `callback` **{Function}**    
@@ -109,21 +110,21 @@ marks.
 
 Read JSON file asynchronously and parse content as JSON
 
-### [.readYAMLSync](index.js#L252)
+### [.readYAMLSync](index.js#L253)
 
 * `filepath` **{String}**    
 * `returns`: {Object}  
 
 Read a YAML file synchronously and parse its content as JSON
 
-### [.readYAML](index.js#L264)
+### [.readYAML](index.js#L265)
 
 * `filepath` **{String}**    
 * `returns`: {Object}  
 
 Read a YAML file synchronously and parse its content as JSON
 
-### [.readDataSync](index.js#L296)
+### [.readDataSync](index.js#L297)
 
 * `filepath` **{String}**    
 * `options` **{String}**    
@@ -132,7 +133,7 @@ Read a YAML file synchronously and parse its content as JSON
 Read JSON or YAML. Determins the reader automatically
 based on file extension.
 
-### [.readData](index.js#L327)
+### [.readData](index.js#L328)
 
 * `filepath` **{String}**    
 * `options` **{String}**    
@@ -141,12 +142,15 @@ based on file extension.
 Read JSON or YAML async. Determins the reader automatically
 based on file extension.
 
-### [.writeFile](index.js#L388)
+### [.writeFile](index.js#L402)
 
+* `dest` **{String}**    
+* `content` **{String}**    
+* `callback` **{Function}**    
 
-Write
+Asynchronously write a file to disk.
 
-### [.writeFileSync](index.js#L415)
+### [.writeFileSync](index.js#L429)
 
 * `dest` **{String}**    
 * `str` **{String}**    
@@ -155,7 +159,7 @@ Write
 Synchronously write files to disk, creating any
 intermediary directories if they don't exist.
 
-### [.writeJSONSync](index.js#L435)
+### [.writeJSONSync](index.js#L449)
 
 * `dest` **{String}**    
 * `str` **{String}**    
@@ -164,7 +168,7 @@ intermediary directories if they don't exist.
 Synchronously write JSON to disk, creating any
 intermediary directories if they don't exist.
 
-### [.writeJSON](index.js#L451)
+### [.writeJSON](index.js#L465)
 
 * `dest` **{String}**    
 * `str` **{String}**    
@@ -173,7 +177,7 @@ intermediary directories if they don't exist.
 Asynchronously write files to disk, creating any
 intermediary directories if they don't exist.
 
-### [.writeYAMLSync](index.js#L472)
+### [.writeYAMLSync](index.js#L485)
 
 * `dest` **{String}**    
 * `str` **{String}**    
@@ -182,7 +186,7 @@ intermediary directories if they don't exist.
 Synchronously write YAML to disk, creating any
 intermediary directories if they don't exist.
 
-### [.writeYAML](index.js#L488)
+### [.writeYAML](index.js#L501)
 
 * `dest` **{String}**    
 * `str` **{String}**    
@@ -191,7 +195,7 @@ intermediary directories if they don't exist.
 Aynchronously write YAML to disk, creating any
 intermediary directories if they don't exist.
 
-### [.writeDataSync](index.js#L513)
+### [.writeDataSync](index.js#L526)
 
 Synchronously write JSON or YAML to disk, creating any intermediary directories if they don't exist. Data type is determined by the `dest` file extension.
 
@@ -203,7 +207,7 @@ Synchronously write JSON or YAML to disk, creating any intermediary directories 
 writeDataSync('foo.yml', {foo: "bar"});
 ```
 
-### [.writeData](index.js#L549)
+### [.writeData](index.js#L562)
 
 Asynchronously write JSON or YAML to disk, creating any intermediary directories if they don't exist. Data type is determined by the `dest` file extension.
 
@@ -215,14 +219,14 @@ Asynchronously write JSON or YAML to disk, creating any intermediary directories
 writeDataSync('foo.yml', {foo: "bar"});
 ```
 
-### [.copyFileSync](index.js#L582)
+### [.copyFileSync](index.js#L595)
 
 * `src` **{String}**    
 * `dest` **{String}**    
 
 Copy files synchronously;
 
-### [.rmdir](index.js#L595)
+### [.rmdir](index.js#L608)
 
 * `dir` **{String}**    
 * **{Function}**: `cb    
@@ -230,21 +234,30 @@ Copy files synchronously;
 
 Asynchronously remove dirs and child dirs that exist.
 
-### [.ext](index.js#L702)
+### [.del](index.js#L645)
+
+* `patterns` **{String}**: Glob patterns to use.    
+* `options` **{String}**: Options for globby.    
+* `cb` **{Function}**    
+
+Delete folders and files recursively. Pass a callback
+as the last argument to use async.
+
+### [.ext](index.js#L713)
 
 * `filepath` **{String}**    
 * `returns`: {String}  
 
 Return the file extension.
 
-### [.dirname](index.js#L714)
+### [.dirname](index.js#L725)
 
 * `filepath` **{String}**    
 * `returns`: {String}  
 
 Directory path excluding filename.
 
-### [.last](index.js#L740)
+### [.last](index.js#L751)
 
 * `filepath` **{String}**    
 * `returns`: {String}  
@@ -252,7 +265,7 @@ Directory path excluding filename.
 The last `n` segments of a filepath. If a number
 isn't passed for `n`, the last segment is returned.
 
-### [.first](index.js#L755)
+### [.first](index.js#L766)
 
 * `filepath` **{String}**    
 * `returns`: {String}  
@@ -260,7 +273,7 @@ isn't passed for `n`, the last segment is returned.
 The first `n` segments of a filepath. If a number
 isn't passed for `n`, the first segment is returned.
 
-### [.lastChar](index.js#L774)
+### [.lastChar](index.js#L785)
 
 Returns the last character in `filepath`
 
@@ -272,7 +285,7 @@ lastChar('foo/bar/baz/');
 //=> '/'
 ```
 
-### [.addSlash](index.js#L801)
+### [.addSlash](index.js#L812)
 
 Add a trailing slash to the filepath.
 
@@ -282,28 +295,28 @@ Add a trailing slash to the filepath.
 Note, this does _not_ consult the file system
 to check if the filepath is file or a directory.
 
-### [.normalizePath](index.js#L816)
+### [.normalizePath](index.js#L827)
 
 * `filepath` **{String}**    
 * `returns`: {String}  
 
 Normalize a filepath and remove trailing slashes.
 
-### [.relative](index.js#L842)
+### [.relative](index.js#L853)
 
 * `filepath` **{String}**    
 * `returns`: {String}  
 
 Resolve the relative path from `a` to `b.
 
-### [.isAbsolute](index.js#L854)
+### [.isAbsolute](index.js#L865)
 
 * **{[type]}**: filepath    
 * `returns`: {Boolean}  
 
 Return `true` if the path is absolute.
 
-### [.equivalent](index.js#L868)
+### [.equivalent](index.js#L879)
 
 * `filepath` **{String}**    
 * `a` **{String}**    
@@ -312,7 +325,7 @@ Return `true` if the path is absolute.
 
 Return `true` if path `a` is the same as path `b.
 
-### [.doesPathContain](index.js#L883)
+### [.doesPathContain](index.js#L894)
 
 True if descendant path(s) contained within ancestor path. Note: does not test if paths actually exist.
 
@@ -321,7 +334,7 @@ True if descendant path(s) contained within ancestor path. Note: does not test i
 
 Sourced from [Grunt].
 
-### [.isPathCwd](index.js#L912)
+### [.isPathCwd](index.js#L923)
 
 True if a filepath is the CWD.
 
@@ -330,7 +343,7 @@ True if a filepath is the CWD.
 
 Sourced from [Grunt].
 
-### [.isPathInCwd](index.js#L929)
+### [.isPathInCwd](index.js#L940)
 
 * `filepath` **{String}**    
 * `returns`: {Boolean}  
@@ -350,6 +363,6 @@ Released under the MIT license
 
 ***
 
-_This file was generated by [verb-cli](https://github.com/assemble/verb-cli) on October 06, 2014._
+_This file was generated by [verb-cli](https://github.com/assemble/verb-cli) on October 24, 2014._
 
 [globby]: //github.com/sindresorhus/globby

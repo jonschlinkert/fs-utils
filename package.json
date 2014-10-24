@@ -1,6 +1,6 @@
 {
   "name": "fs-utils",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "fs extras and utilities to extend the node.js file system module. Used in Assemble and many other projects.",
   "repository": {
     "type": "git",
@@ -28,14 +28,16 @@
     "node": ">= 0.8.0"
   },
   "dependencies": {
+    "array-slice": "^0.2.2",
     "async": "^0.9.0",
     "delete": "^0.1.5",
     "extend-shallow": "^0.1.0",
     "globby": "^0.1.1",
-    "graceful-fs": "^3.0.2",
+    "graceful-fs": "^3.0.4",
     "is-absolute": "^0.1.5",
     "js-yaml": "^3.2.2",
-    "kind-of": "^0.1.0",
+    "kind-of": "^0.1.1",
+    "normalize-path": "^0.3.0",
     "relative": "^0.1.6"
   },
   "devDependencies": {

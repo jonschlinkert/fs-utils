@@ -12,6 +12,7 @@ var path = require('path');
 var async = require('async');
 var del = require('delete');
 var extend = require('extend-shallow');
+var normalize = require('normalize-path');
 var glob = require('globby');
 var isAbs = require('is-absolute');
 var rel = require('relative');
@@ -28,7 +29,7 @@ var EOLre = new RegExp(EOL, 'g');
  * @api public
  */
 
-exports.stripcr = function(str) {
+exports.stripCR = function(str) {
   return str.replace(/\r/g, '');
 };
 
@@ -50,12 +51,13 @@ exports.stripBOM = function(str) {
  * Normalize all slashes to forward slashes.
  *
  * @param  {String} `str`
+ * @param  {Boolean} `stripTrailing` False by default.
  * @return {String}
  * @api public
  */
 
-exports.forwardSlash = function(str) {
-  return str.replace(/[\\\/]/g, '/');
+exports.slashify = function(str, trailing) {
+  return normalize(str, trailing || false);
 };
 
 /**
@@ -73,7 +75,6 @@ exports.normalize = function(str){
   }
   return exports.stripBOM(str);
 };
-
 
 /**
  * True if the filepath actually exist.
@@ -350,7 +351,10 @@ exports.readData = function(filepath, options, cb) {
 };
 
 /**
- * Make directories
+ * Asynchronously create dirs and any intermediate dirs
+ * don't exist.
+ *
+ * @param  {String} `dirpath`
  */
 
 var mkdir = exports.mkdir = function(dest, cb) {
@@ -366,7 +370,13 @@ var mkdir = exports.mkdir = function(dest, cb) {
   });
 };
 
-// Make any dirs and intermediate dirs don't exist
+/**
+ * Synchronously create dirs and any intermediate dirs
+ * don't exist.
+ *
+ * @param  {String} `dirpath`
+ */
+
 var mkdirSync = exports.mkdirSync = function(dirpath, mode) {
   mode = mode || parseInt('0777', 8) & (~process.umask());
   if (!fs.existsSync(dirpath)) {
@@ -381,21 +391,25 @@ var mkdirSync = exports.mkdirSync = function(dirpath, mode) {
 };
 
 /**
- * Write
+ * Asynchronously write a file to disk.
+ *
+ * @param  {String} `dest`
+ * @param  {String} `content`
+ * @param  {Function} `callback`
  * @api public
  */
 
-exports.writeFile = function(dest, content, callback) {
+exports.writeFile = function(dest, content, cb) {
   var destpath = path.dirname(dest);
   fs.exists(destpath, function (exists) {
     if (exists) {
-      fs.writeFile(dest, content, callback);
+      fs.writeFile(dest, content, cb);
     } else {
       mkdir(destpath, function (err) {
         if (err) {
-          callback(err);
+          cb(err);
         } else {
-          fs.writeFile(dest, content, callback);
+          fs.writeFile(dest, content, cb);
         }
       });
     }
@@ -453,10 +467,9 @@ exports.writeJSON = function(dest, str, options, cb) {
     cb = options; options = {};
   }
 
-  var opts = extend({indent: 2}, options);
-
-  str = JSON.stringify(str, null, opts.indent);
-  exports.writeFile(dest, str, cb);
+  var indent = options && options.indent || 2;
+  var json = JSON.stringify(str, null, indent);
+  exports.writeFile(dest, json, cb);
 };
 
 /**
@@ -470,9 +483,9 @@ exports.writeJSON = function(dest, str, options, cb) {
  */
 
 exports.writeYAMLSync = function(dest, str, options) {
-  var opts = extend({indent: 2}, options);
-  var res = YAML.dump(str, null, opts.indent);
-  exports.writeFileSync(dest, res);
+  var indent = options && options.indent || 2;
+  var json = YAML.dump(str, null, indent);
+  exports.writeFileSync(dest, json);
 };
 
 /**
@@ -619,7 +632,6 @@ exports.rmdir = function(dir, cb) {
   });
 };
 
-
 /**
  * Delete folders and files recursively. Pass a callback
  * as the last argument to use async.
@@ -627,7 +639,6 @@ exports.rmdir = function(dir, cb) {
  * @param  {String} `patterns` Glob patterns to use.
  * @param  {String} `options` Options for globby.
  * @param  {Function} `cb`
- * @api public
  * @api public
  */
 
@@ -928,7 +939,8 @@ exports.isPathCwd = function(filepath) {
 
 exports.isPathInCwd = function(filepath) {
   try {
-    var actual = fs.realpathSync(filepath);
+    var actual = fs.realpathSync(path.resolve(filepath));
+    console.log(actual)
     return exports.doesPathContain(process.cwd(), actual);
   } catch (err) {
     return false;

@@ -11,11 +11,11 @@ var path = require('path');
 var file = require('..');
 
 // Normalize slashes in some test results
-var normalize = file.forwardSlash;
+var normalize = file.slashify;
 
 describe('Normalize slashes', function() {
   it('should normalize slash', function() {
-    file.forwardSlash('foo\\bar/baz').should.equal('foo/bar/baz');
+    file.slashify('foo\\bar/baz').should.equal('foo/bar/baz');
   });
 });
 
