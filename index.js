@@ -9,17 +9,9 @@
 
 var fs = require('graceful-fs');
 var path = require('path');
-var async = require('async');
-var del = require('delete');
-var extend = require('extend-shallow');
-var normalize = require('normalize-path');
-var glob = require('matched');
-var isAbs = require('is-absolute');
-var rel = require('relative');
-var typeOf = require('kind-of');
-var YAML = require('js-yaml');
 var EOL = require('os').EOL;
 var EOLre = new RegExp(EOL, 'g');
+var utils = require('./utils');
 
 /**
  * Strip carriage returns from a string.
@@ -57,7 +49,7 @@ exports.stripBOM = function(str) {
  */
 
 exports.slashify = function(str, trailing) {
-  return normalize(str, trailing || false);
+  return utils.normalize(str, trailing || false);
 };
 
 /**
@@ -149,7 +141,7 @@ exports.isLink = function(filepath) {
 };
 
 /**
- * Glob files using [globby]. Or glob files synchronously
+ * Glob files using [matched]. Or glob files synchronously
  * with `glob.sync`.
  *
  * @param  {String|Array} `patterns`
@@ -157,7 +149,7 @@ exports.isLink = function(filepath) {
  * @api public
  */
 
-exports.glob = glob;
+exports.glob = utils.glob;
 
 /**
  * Read a file synchronously. Also strips any byte order
@@ -169,7 +161,7 @@ exports.glob = glob;
  */
 
 exports.readFileSync = function(filepath, options) {
-  var opts = extend({normalize: true, encoding: 'utf8'}, options);
+  var opts = utils.extend({normalize: true, encoding: 'utf8'}, options);
   var str = fs.readFileSync(filepath, opts.encoding);
   if (opts.normalize && opts.encoding === 'utf8') {
     str = exports.normalize(str);
@@ -198,7 +190,7 @@ var readFile = exports.readFile = function(filepath, options, cb) {
     }
   }
 
-  var opts = extend({normalize: true, encoding: 'utf8'}, options);
+  var opts = utils.extend({normalize: true, encoding: 'utf8'}, options);
 
   fs.readFile(filepath, opts.encoding, function (err, content) {
     if (err) return cb(err);
@@ -233,7 +225,7 @@ exports.readJSONSync = function(filepath, options) {
  */
 
 exports.readJSON = function(filepath, cb) {
-  async.waterfall([
+  utils.async.waterfall([
     function (next) {
       readFile(filepath, next);
     }, function (contents, next) {
@@ -251,7 +243,7 @@ exports.readJSON = function(filepath, cb) {
  */
 
 exports.readYAMLSync = function(filepath) {
-  return YAML.load(exports.readFileSync(filepath));
+  return utils.YAML.load(exports.readFileSync(filepath));
 };
 
 /**
@@ -272,7 +264,7 @@ exports.readYAML = function(filepath, options, cb) {
     }
   }
 
-  var opts = extend({normalize: true, encoding: 'utf8'}, options);
+  var opts = utils.extend({normalize: true, encoding: 'utf8'}, options);
 
   fs.readFile(filepath, opts.encoding, function (err, content) {
     if (err) return cb(err);
@@ -280,12 +272,12 @@ exports.readYAML = function(filepath, options, cb) {
     if (opts.normalize && opts.encoding === 'utf8') {
       content = exports.normalize(content);
     }
-    cb(null, YAML.load(content));
+    cb(null, utils.YAML.load(content));
   });
 };
 
 /**
- * Read JSON or YAML. Determins the reader automatically
+ * Read JSON or utils.YAML. Determins the reader automatically
  * based on file extension.
  *
  * @param  {String} `filepath`
@@ -316,7 +308,7 @@ exports.readDataSync = function(filepath, options) {
 };
 
 /**
- * Read JSON or YAML async. Determins the reader automatically
+ * Read JSON or YAML utils.async. Determins the reader automatically
  * based on file extension.
  *
  * @param  {String} `filepath`
@@ -330,7 +322,7 @@ exports.readData = function(filepath, options, cb) {
     cb = options;
     options = {};
   }
-  var opts = extend({}, options);
+  var opts = utils.extend({}, options);
   var ext = opts.parse || path.extname(filepath);
   var reader = exports.readJSON;
 
@@ -427,7 +419,7 @@ exports.writeFile = function(dest, content, cb) {
  */
 
 exports.writeFileSync = function(dest, str, options) {
-  var opts = extend({enc: 'utf8'}, options);
+  var opts = utils.extend({enc: 'utf8'}, options);
   var dir = path.dirname(dest);
 
   if (!exists(dir)) {
@@ -447,7 +439,7 @@ exports.writeFileSync = function(dest, str, options) {
  */
 
 exports.writeJSONSync = function(dest, str, options) {
-  var opts = extend({indent: 2}, options);
+  var opts = utils.extend({indent: 2}, options);
   str = JSON.stringify(str, null, opts.indent);
   exports.writeFileSync(dest, str);
 };
@@ -484,7 +476,7 @@ exports.writeJSON = function(dest, str, options, cb) {
 
 exports.writeYAMLSync = function(dest, str, options) {
   var indent = options && options.indent || 2;
-  var json = YAML.dump(str, null, indent);
+  var json = utils.YAML.dump(str, null, indent);
   exports.writeFileSync(dest, json);
 };
 
@@ -502,9 +494,9 @@ exports.writeYAML = function(dest, str, options, cb) {
   if (typeof options === 'function') {
     cb = options; options = {};
   }
-  var opts = extend({indent: 2}, options);
+  var opts = utils.extend({indent: 2}, options);
 
-  str = YAML.dump(str, null, opts.indent);
+  str = utils.YAML.dump(str, null, opts.indent);
   exports.writeFile(dest, str, cb);
 };
 
@@ -525,7 +517,7 @@ exports.writeYAML = function(dest, str, options, cb) {
 
 exports.writeDataSync = function(dest, str, options) {
   var defaults = {ext: exports.ext(dest), indent: 2};
-  var opts = extend({}, defaults, options);
+  var opts = utils.extend({}, defaults, options);
   var writer = exports.writeJSONSync;
 
   if (opts.ext[0] === '.') {
@@ -564,7 +556,7 @@ exports.writeData = function(dest, str, options, cb) {
     cb = options; options = {};
   }
   var defaults = {ext: exports.ext(dest), indent: 2};
-  var opts = extend({}, defaults, options);
+  var opts = utils.extend({}, defaults, options);
   var writer = exports.writeJSON;
   var ext = opts.ext;
 
@@ -614,14 +606,14 @@ exports.rmdir = function(dir, cb) {
     if (err) {
       return cb(err);
     }
-    async.each(files, function (segment, next) {
+    utils.async.each(files, function (segment, next) {
       var dir = path.join(dir, segment);
       fs.stat(dir, function (err, stats) {
         if (err) {
           return cb(err);
         }
         if (stats.isDirectory()) {
-          del(dir, next);
+          utils.del(dir, next);
         } else {
           fs.unlink(dir, next);
         }
@@ -634,10 +626,10 @@ exports.rmdir = function(dir, cb) {
 
 /**
  * Delete folders and files recursively. Pass a callback
- * as the last argument to use async.
+ * as the last argument to use utils.async.
  *
  * @param  {String} `patterns` Glob patterns to use.
- * @param  {String} `options` Options for globby.
+ * @param  {String} `options` Options for matched.
  * @param  {Function} `cb`
  * @api public
  */
@@ -646,7 +638,7 @@ exports.del = function(patterns, opts, cb) {
   var args = [].slice.call(arguments);
   var last = args[args.length - 1];
 
-  if (typeOf(last) === 'function') {
+  if (typeof last === 'function') {
     exports.deleteAsync(patterns, opts);
   } else {
     exports.deleteSync(patterns, opts);
@@ -657,7 +649,7 @@ exports.del = function(patterns, opts, cb) {
  * Asynchronously delete folders and files.
  *
  * @param  {String} `patterns` Glob patterns to use.
- * @param  {String} `opts` Options for globby.
+ * @param  {String} `opts` Options for matched.
  * @param  {Function} `cb`
  * @api private
  */
@@ -668,17 +660,17 @@ exports.deleteAsync = function(patterns, opts, cb) {
     opts = {};
   }
 
-  glob(patterns, opts, function (err, files) {
+  utils.glob(patterns, opts, function (err, files) {
     if (err) {
       cb(err);
       return;
     }
-    async.each(files, function (filepath, next) {
+    utils.async.each(files, function (filepath, next) {
       if (opts.cwd) {
         filepath = path.resolve(opts.cwd, filepath);
       }
 
-      del(filepath, next);
+      utils.del(filepath, next);
     }, cb);
   });
 };
@@ -687,18 +679,18 @@ exports.deleteAsync = function(patterns, opts, cb) {
  * Synchronously delete folders and files.
  *
  * @param  {String} `patterns` Glob patterns to use.
- * @param  {String} `options` Options for globby.
+ * @param  {String} `options` Options for matched.
  * @param  {Function} `cb`
  * @api private
  */
 
 exports.deleteSync = function(patterns, options) {
-  var opts = extend({cwd: process.cwd()}, options);
-  glob.sync(patterns, opts).forEach(function (filepath) {
+  var opts = utils.extend({cwd: process.cwd()}, options);
+  utils.glob.sync(patterns, opts).forEach(function (filepath) {
     if (opts.cwd) {
       filepath = path.resolve(opts.cwd, filepath);
     }
-    del.sync(filepath);
+    utils.del.sync(filepath);
   });
 };
 
@@ -851,7 +843,7 @@ var resolve = exports.resolve = function(filepath) {
  */
 
 exports.relative = function(a, b) {
-  return rel.apply(rel, arguments);
+  return utils.rel.apply(utils.rel, arguments);
 };
 
 /**
@@ -863,7 +855,7 @@ exports.relative = function(a, b) {
  */
 
 exports.isAbsolute = function(filepath) {
-  return isAbs.apply(isAbs, arguments);
+  return utils.isAbs.apply(utils.isAbs, arguments);
 };
 
 /**
