@@ -1,56 +1,60 @@
 {
   "name": "fs-utils",
-  "version": "0.6.0",
   "description": "fs extras and utilities to extend the node.js file system module. Used in Assemble and many other projects.",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/assemble/fs-utils.git"
-  },
+  "version": "0.6.0",
   "homepage": "https://github.com/assemble/fs-utils",
-  "author": {
-    "name": "Jon Schlinkert",
-    "url": "https://github.com/assemble"
-  },
+  "author": "Jon Schlinkert (https://github.com/assemble)",
+  "repository": "assemble/fs-utils",
   "bugs": {
     "url": "https://github.com/assemble/fs-utils/issues"
   },
   "license": "MIT",
+  "files": [
+    "ext.js",
+    "index.js"
+  ],
   "main": "index.js",
-  "scripts": {
-    "test": "mocha -R spec"
-  },
   "engines": {
     "node": ">= 0.8.0"
   },
+  "scripts": {
+    "test": "mocha"
+  },
   "dependencies": {
-    "array-slice": "^0.2.2",
-    "async": "^0.9.0",
-    "delete": "^0.1.5",
-    "extend-shallow": "^0.1.0",
-    "globby": "^0.1.1",
-    "graceful-fs": "^3.0.4",
-    "is-absolute": "^0.1.5",
-    "js-yaml": "^3.2.2",
-    "kind-of": "^0.1.1",
+    "async": "^1.5.0",
+    "delete": "^0.2.1",
+    "extend-shallow": "^2.0.1",
+    "graceful-fs": "^4.1.2",
+    "is-absolute": "^0.2.2",
+    "js-yaml": "^3.4.3",
+    "kind-of": "^2.0.1",
+    "matched": "^0.3.2",
     "normalize-path": "^0.3.0",
     "relative": "^0.1.6"
   },
   "devDependencies": {
-    "mocha": "*",
-    "should": "^4.0.4",
-    "verb": ">= 0.2.6",
-    "verb-tag-jscomments": ">= 0.2.0"
+    "mocha": "^2.3.3",
+    "should": "^4.0.4"
   },
   "keywords": [
-    "file system",
     "file",
-    "read",
-    "readFile",
-    "readFileSync",
+    "file system",
     "fs",
     "node",
     "node.js",
     "path",
+    "read",
+    "readFile",
+    "readFileSync",
     "utils"
-  ]
+  ],
+  "verb": {
+    "related": {
+      "description": "",
+      "list": [
+        "micromatch",
+        "is-glob"
+      ]
+    }
+  }
 }

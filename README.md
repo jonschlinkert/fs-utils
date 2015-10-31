@@ -1,19 +1,13 @@
 # fs-utils [![NPM version](https://badge.fury.io/js/fs-utils.svg)](http://badge.fury.io/js/fs-utils)
 
-
 > fs extras and utilities to extend the node.js file system module. Used in Assemble and many other projects.
 
 ## Install
-#### Install with [npm](npmjs.org):
 
-```bash
-npm i fs-utils --save-dev
-```
+Install with [npm](https://www.npmjs.com/)
 
-## Run tests
-
-```bash
-npm test
+```sh
+$ npm i fs-utils --save
 ```
 
 ## Usage
@@ -23,185 +17,232 @@ var fs = require('fs-utils');
 ```
 
 ## API
+
 ### [.stripCR](index.js#L32)
 
-* `str` **{String}**    
-* `returns`: {String}  
-
 Strip carriage returns from a string.
+
+**Params**
+
+* `str` **{String}**
+* `returns` **{String}**
 
 ### [.stripBOM](index.js#L46)
 
 Strip byte order marks from a string.
 
-* `str` **{String}**    
-* `returns`: {String}  
-
 See [BOM](http://en.wikipedia.org/wiki/Byte_order_mark)
+
+**Params**
+
+* `str` **{String}**
+* `returns` **{String}**
 
 ### [.slashify](index.js#L59)
 
-* `str` **{String}**    
-* `stripTrailing` **{Boolean}**: False by default.    
-* `returns`: {String}  
-
 Normalize all slashes to forward slashes.
+
+**Params**
+
+* `str` **{String}**
+* `stripTrailing` **{Boolean}**: False by default.
+* `returns` **{String}**
 
 ### [.isEmpty](index.js#L99)
 
-* `filepath` **{String}**    
-* `returns`: {Boolean}  
-
 Return `true` if the file exists and is empty.
+
+**Params**
+
+* `filepath` **{String}**
+* `returns` **{Boolean}**
 
 ### [.isDir](index.js#L115)
 
-* `filepath` **{String}**    
-* `returns`: {Boolean}  
-
 Return `true` if the filepath is a directory.
+
+**Params**
+
+* `filepath` **{String}**
+* `returns` **{Boolean}**
 
 ### [.isLink](index.js#L146)
 
-* `filepath` **{String}**    
-* `returns`: {Boolean}  
-
 True if the filepath is a symbolic link.
 
-### [.glob](index.js#L160)
+**Params**
 
-* `patterns` **{String|Array}**    
-* `returns`: {options}  
+* `filepath` **{String}**
+* `returns` **{Boolean}**
+
+### [.glob](index.js#L160)
 
 Glob files using [globby]. Or glob files synchronously
 with `glob.sync`.
 
-### [.readFileSync](index.js#L171)
+**Params**
 
-* `filepath` **{String}**    
-* `returns`: {String}  
+* `patterns` **{String|Array}**
+* `returns` **{options}**
+
+### [.readFileSync](index.js#L171)
 
 Read a file synchronously. Also strips any byte order
 marks.
 
-### [readFile](index.js#L191)
+**Params**
 
-* `filepath` **{String}**    
-* `options` **{Object}**    
-* `normalize` **{Boolean}**: Strip carriage returns and BOM.    
-* `encoding` **{String}**: Default is `utf8`    
-* `callback` **{Function}**    
+* `filepath` **{String}**
+* `returns` **{String}**
+
+### [readFile](index.js#L191)
 
 Read a file asynchronously.
 
-### [.readJSONSync](index.js#L222)
+**Params**
 
-* `filepath` **{String}**    
-* `returns`: {Object}  
+* `filepath` **{String}**
+* `options` **{Object}**
+* `normalize` **{Boolean}**: Strip carriage returns and BOM.
+* `encoding` **{String}**: Default is `utf8`
+* `callback` **{Function}**
+
+### [.readJSONSync](index.js#L222)
 
 Read a file synchronously and parse contents as JSON.
 marks.
 
-### [.readJSON](index.js#L235)
+**Params**
 
-* `filepath` **{String}**    
-* `callback` **{Function}**    
-* `returns`: {Object}  
+* `filepath` **{String}**
+* `returns` **{Object}**
+
+### [.readJSON](index.js#L235)
 
 Read JSON file asynchronously and parse content as JSON
 
+**Params**
+
+* `filepath` **{String}**
+* `callback` **{Function}**
+* `returns` **{Object}**
+
 ### [.readYAMLSync](index.js#L253)
 
-* `filepath` **{String}**    
-* `returns`: {Object}  
-
 Read a YAML file synchronously and parse its content as JSON
+
+**Params**
+
+* `filepath` **{String}**
+* `returns` **{Object}**
 
 ### [.readYAML](index.js#L265)
 
-* `filepath` **{String}**    
-* `returns`: {Object}  
-
 Read a YAML file synchronously and parse its content as JSON
 
-### [.readDataSync](index.js#L297)
+**Params**
 
-* `filepath` **{String}**    
-* `options` **{String}**    
-* `returns`: {String}  
+* `filepath` **{String}**
+* `returns` **{Object}**
+
+### [.readDataSync](index.js#L297)
 
 Read JSON or YAML. Determins the reader automatically
 based on file extension.
 
-### [.readData](index.js#L328)
+**Params**
 
-* `filepath` **{String}**    
-* `options` **{String}**    
-* `returns`: {String}  
+* `filepath` **{String}**
+* `options` **{String}**
+* `returns` **{String}**
+
+### [.readData](index.js#L328)
 
 Read JSON or YAML async. Determins the reader automatically
 based on file extension.
 
-### [.writeFile](index.js#L402)
+**Params**
 
-* `dest` **{String}**    
-* `content` **{String}**    
-* `callback` **{Function}**    
+* `filepath` **{String}**
+* `options` **{String}**
+* `returns` **{String}**
+
+### [.writeFile](index.js#L402)
 
 Asynchronously write a file to disk.
 
-### [.writeFileSync](index.js#L429)
+**Params**
 
-* `dest` **{String}**    
-* `str` **{String}**    
-* `options` **{Options}**    
+* `dest` **{String}**
+* `content` **{String}**
+* `callback` **{Function}**
+
+### [.writeFileSync](index.js#L429)
 
 Synchronously write files to disk, creating any
 intermediary directories if they don't exist.
 
-### [.writeJSONSync](index.js#L449)
+**Params**
 
-* `dest` **{String}**    
-* `str` **{String}**    
-* `options` **{Options}**    
+* `dest` **{String}**
+* `str` **{String}**
+* `options` **{Options}**
+
+### [.writeJSONSync](index.js#L449)
 
 Synchronously write JSON to disk, creating any
 intermediary directories if they don't exist.
 
-### [.writeJSON](index.js#L465)
+**Params**
 
-* `dest` **{String}**    
-* `str` **{String}**    
-* `options` **{Options}**    
+* `dest` **{String}**
+* `str` **{String}**
+* `options` **{Options}**
+
+### [.writeJSON](index.js#L465)
 
 Asynchronously write files to disk, creating any
 intermediary directories if they don't exist.
 
-### [.writeYAMLSync](index.js#L485)
+**Params**
 
-* `dest` **{String}**    
-* `str` **{String}**    
-* `options` **{Options}**    
+* `dest` **{String}**
+* `str` **{String}**
+* `options` **{Options}**
+
+### [.writeYAMLSync](index.js#L485)
 
 Synchronously write YAML to disk, creating any
 intermediary directories if they don't exist.
 
-### [.writeYAML](index.js#L501)
+**Params**
 
-* `dest` **{String}**    
-* `str` **{String}**    
-* `options` **{Options}**    
+* `dest` **{String}**
+* `str` **{String}**
+* `options` **{Options}**
+
+### [.writeYAML](index.js#L501)
 
 Aynchronously write YAML to disk, creating any
 intermediary directories if they don't exist.
+
+**Params**
+
+* `dest` **{String}**
+* `str` **{String}**
+* `options` **{Options}**
 
 ### [.writeDataSync](index.js#L526)
 
 Synchronously write JSON or YAML to disk, creating any intermediary directories if they don't exist. Data type is determined by the `dest` file extension.
 
-* `dest` **{String}**    
-* `str` **{String}**    
-* `options` **{Options}**    
+**Params**
+
+* `dest` **{String}**
+* `str` **{String}**
+* `options` **{Options}**
+
+**Example**
 
 ```js
 writeDataSync('foo.yml', {foo: "bar"});
@@ -211,9 +252,13 @@ writeDataSync('foo.yml', {foo: "bar"});
 
 Asynchronously write JSON or YAML to disk, creating any intermediary directories if they don't exist. Data type is determined by the `dest` file extension.
 
-* `dest` **{String}**    
-* `str` **{String}**    
-* `options` **{Options}**    
+**Params**
+
+* `dest` **{String}**
+* `str` **{String}**
+* `options` **{Options}**
+
+**Example**
 
 ```js
 writeDataSync('foo.yml', {foo: "bar"});
@@ -221,64 +266,82 @@ writeDataSync('foo.yml', {foo: "bar"});
 
 ### [.copyFileSync](index.js#L595)
 
-* `src` **{String}**    
-* `dest` **{String}**    
-
 Copy files synchronously;
+
+**Params**
+
+* `src` **{String}**
+* `dest` **{String}**
 
 ### [.rmdir](index.js#L608)
 
-* `dir` **{String}**    
-* **{Function}**: `cb    
-* `returns`: {Function}  
-
 Asynchronously remove dirs and child dirs that exist.
 
-### [.del](index.js#L645)
+**Params**
 
-* `patterns` **{String}**: Glob patterns to use.    
-* `options` **{String}**: Options for globby.    
-* `cb` **{Function}**    
+* `dir` **{String}**
+* **{Function}**: `cb
+* `returns` **{Function}**
+
+### [.del](index.js#L645)
 
 Delete folders and files recursively. Pass a callback
 as the last argument to use async.
 
-### [.ext](index.js#L713)
+**Params**
 
-* `filepath` **{String}**    
-* `returns`: {String}  
+* `patterns` **{String}**: Glob patterns to use.
+* `options` **{String}**: Options for globby.
+* `cb` **{Function}**
+
+### [.ext](index.js#L713)
 
 Return the file extension.
 
-### [.dirname](index.js#L725)
+**Params**
 
-* `filepath` **{String}**    
-* `returns`: {String}  
+* `filepath` **{String}**
+* `returns` **{String}**
+
+### [.dirname](index.js#L725)
 
 Directory path excluding filename.
 
-### [.last](index.js#L751)
+**Params**
 
-* `filepath` **{String}**    
-* `returns`: {String}  
+* `filepath` **{String}**
+* `returns` **{String}**
+
+### [.last](index.js#L751)
 
 The last `n` segments of a filepath. If a number
 isn't passed for `n`, the last segment is returned.
 
-### [.first](index.js#L766)
+**Params**
 
-* `filepath` **{String}**    
-* `returns`: {String}  
+* `filepath` **{String}**
+* `returns` **{String}**
+
+### [.first](index.js#L766)
 
 The first `n` segments of a filepath. If a number
 isn't passed for `n`, the first segment is returned.
+
+**Params**
+
+* `filepath` **{String}**
+* `returns` **{String}**
 
 ### [.lastChar](index.js#L785)
 
 Returns the last character in `filepath`
 
-* `filepath` **{String}**    
-* `returns`: {String}  
+**Params**
+
+* `filepath` **{String}**
+* `returns` **{String}**
+
+**Example**
 
 ```
 lastChar('foo/bar/baz/');
@@ -289,80 +352,112 @@ lastChar('foo/bar/baz/');
 
 Add a trailing slash to the filepath.
 
-* `filepath` **{String}**    
-* `returns`: {String}  
-
 Note, this does _not_ consult the file system
 to check if the filepath is file or a directory.
 
-### [.normalizePath](index.js#L827)
+**Params**
 
-* `filepath` **{String}**    
-* `returns`: {String}  
+* `filepath` **{String}**
+* `returns` **{String}**
+
+### [.normalizePath](index.js#L827)
 
 Normalize a filepath and remove trailing slashes.
 
-### [.relative](index.js#L853)
+**Params**
 
-* `filepath` **{String}**    
-* `returns`: {String}  
+* `filepath` **{String}**
+* `returns` **{String}**
+
+### [.relative](index.js#L853)
 
 Resolve the relative path from `a` to `b.
 
-### [.isAbsolute](index.js#L865)
+**Params**
 
-* **{[type]}**: filepath    
-* `returns`: {Boolean}  
+* `filepath` **{String}**
+* `returns` **{String}**
+
+### [.isAbsolute](index.js#L865)
 
 Return `true` if the path is absolute.
 
+**Params**
+
+* **{[type]}**: filepath
+* `returns` **{Boolean}**
+
 ### [.equivalent](index.js#L879)
 
-* `filepath` **{String}**    
-* `a` **{String}**    
-* `b` **{String}**    
-* `returns`: {Boolean}  
-
 Return `true` if path `a` is the same as path `b.
+
+**Params**
+
+* `filepath` **{String}**
+* `a` **{String}**
+* `b` **{String}**
+* `returns` **{Boolean}**
 
 ### [.doesPathContain](index.js#L894)
 
 True if descendant path(s) contained within ancestor path. Note: does not test if paths actually exist.
 
-* `ancestor` **{String}**: The starting path.    
-* `returns`: {Boolean}  
-
 Sourced from [Grunt].
+
+**Params**
+
+* `ancestor` **{String}**: The starting path.
+* `returns` **{Boolean}**
 
 ### [.isPathCwd](index.js#L923)
 
 True if a filepath is the CWD.
 
-* `filepath` **{String}**    
-* `returns`: {Boolean}  
-
 Sourced from [Grunt].
+
+**Params**
+
+* `filepath` **{String}**
+* `returns` **{Boolean}**
 
 ### [.isPathInCwd](index.js#L940)
 
-* `filepath` **{String}**    
-* `returns`: {Boolean}  
-
 True if a filepath is contained within the CWD.
+
+**Params**
+
+* `filepath` **{String}**
+* `returns` **{Boolean}**
+
+## Related projects
+
+* [is-glob](https://www.npmjs.com/package/is-glob): Returns `true` if the given string looks like a glob pattern or an extglob pattern.… [more](https://www.npmjs.com/package/is-glob) | [homepage](https://github.com/jonschlinkert/is-glob)
+* [micromatch](https://www.npmjs.com/package/micromatch): Glob matching for javascript/node.js. A drop-in replacement and faster alternative to minimatch and multimatch. Just… [more](https://www.npmjs.com/package/micromatch) | [homepage](https://github.com/jonschlinkert/micromatch)
+
+## Running tests
+
+Install dev dependencies:
+
+```sh
+$ npm i -d && npm test
+```
+
+## Contributing
+
+Pull requests and stars are always welcome. For bugs and feature requests, [please create an issue](https://github.com/assemble/fs-utils/issues/new).
 
 ## Author
 
 **Jon Schlinkert**
- 
+
 + [github/assemble](https://github.com/assemble)
-+ [twitter/assemble](http://twitter.com/assemble) 
++ [twitter/assemble](http://twitter.com/assemble)
 
 ## License
-Copyright (c) 2014 Jon Schlinkert, contributors.  
-Released under the MIT license
+
+Copyright © 2015 Jon Schlinkert
+Released under the MIT license.
 
 ***
 
-_This file was generated by [verb-cli](https://github.com/assemble/verb-cli) on October 24, 2014._
-
-[globby]: //github.com/sindresorhus/globby
+_This file was generated by [verb-cli](https://github.com/assemble/verb-cli) on October 31, 2015._

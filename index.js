@@ -1,7 +1,7 @@
 /*!
  * fs-utils <https://github.com/assemble/fs-utils>
  *
- * Copyright (c) 2014 Jon Schlinkert, Brian Woodward.
+ * Copyright (c) 2014-2015 Jon Schlinkert, Brian Woodward.
  * Licensed under the MIT license.
  */
 
@@ -13,7 +13,7 @@ var async = require('async');
 var del = require('delete');
 var extend = require('extend-shallow');
 var normalize = require('normalize-path');
-var glob = require('globby');
+var glob = require('matched');
 var isAbs = require('is-absolute');
 var rel = require('relative');
 var typeOf = require('kind-of');
@@ -940,7 +940,7 @@ exports.isPathCwd = function(filepath) {
 exports.isPathInCwd = function(filepath) {
   try {
     var actual = fs.realpathSync(path.resolve(filepath));
-    console.log(actual)
+    console.log(actual);
     return exports.doesPathContain(process.cwd(), actual);
   } catch (err) {
     return false;

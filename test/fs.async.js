@@ -7,6 +7,7 @@
 
 'use strict';
 
+require('mocha');
 var should = require('should');
 var path = require('path');
 var file = require('..');
