@@ -843,7 +843,7 @@ var resolve = exports.resolve = function(filepath) {
  */
 
 exports.relative = function(a, b) {
-  return utils.rel.apply(utils.rel, arguments);
+  return utils.relative.apply(utils.relative, arguments);
 };
 
 /**
