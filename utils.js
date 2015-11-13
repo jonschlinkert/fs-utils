@@ -41,6 +41,17 @@ require('relative');
 require = fn;
 
 /**
+ * Utils
+ */
+
+utils.tryStat = function(fp) {
+  try {
+    return fs.statSync(fp);
+  } catch (err) {}
+  return null;
+};
+
+/**
  * Expose `utils` modules
  */
 
