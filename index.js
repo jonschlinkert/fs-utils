@@ -77,7 +77,10 @@ exports.normalize = function(str){
 
 var exists = exports.exists = function(paths) {
   var fp = path.join.apply(path, arguments);
-  return fs.existsSync(fp);
+  try {
+    return fs.existsSync(fp);
+  } catch (err) {}
+  return false;
 };
 
 /**
@@ -89,7 +92,7 @@ var exists = exports.exists = function(paths) {
  */
 
 exports.isEmpty = function(fp) {
-  if (!exists(fp)) {
+  if (exists(fp) === false) {
     return false;
   }
   var str = exports.readFileSync(fp);
@@ -105,7 +108,7 @@ exports.isEmpty = function(fp) {
  */
 
 exports.isDir = function(filepath) {
-  if (!fs.existsSync(filepath)) {
+  if (!exists(filepath)) {
     return false;
   }
   return fs.statSync(filepath)
@@ -120,7 +123,7 @@ exports.isDir = function(filepath) {
  */
 
 var isFile = exports.isFile = function(filepath) {
-  if (!fs.existsSync(filepath)) {
+  if (!exists(filepath)) {
     return false;
   }
   return fs.statSync(filepath)
@@ -181,13 +184,13 @@ exports.readFileSync = function(filepath, options) {
  */
 
 var readFile = exports.readFile = function(filepath, options, cb) {
-  if (!cb) {
-    if (typeof options === 'function') {
-      cb = options;
-      options = {};
-    } else {
-      cb = function () {};
-    }
+  if (typeof options === 'function') {
+    cb = options;
+    options = {};
+  }
+
+  if (typeof cb !== 'function') {
+    throw new TypeError('readfile expects callback to be a function');
   }
 
   var opts = utils.extend({normalize: true, encoding: 'utf8'}, options);
@@ -216,25 +219,6 @@ exports.readJSONSync = function(filepath, options) {
 };
 
 /**
- * Read JSON file asynchronously and parse content as JSON
- *
- * @param  {String} `filepath`
- * @param  {Function} `callback`
- * @return {Object}
- * @api public
- */
-
-exports.readJSON = function(filepath, cb) {
-  utils.async.waterfall([
-    function (next) {
-      readFile(filepath, next);
-    }, function (contents, next) {
-      next(null, JSON.parse(contents));
-    }
-  ], cb);
-};
-
-/**
  * Read a YAML file synchronously and parse its content as JSON
  *
  * @param  {String} `filepath`
@@ -247,6 +231,23 @@ exports.readYAMLSync = function(filepath) {
 };
 
 /**
+ * Read JSON file asynchronously and parse content as JSON
+ *
+ * @param  {String} `filepath`
+ * @param  {Function} `callback`
+ * @return {Object}
+ * @api public
+ */
+
+exports.readJSON = function(filepath, cb) {
+  exports.readFile(filepath, function(err, contents) {
+    if (err) return cb(err);
+
+    cb(null, JSON.parse(contents.toString()));
+  });
+};
+
+/**
  * Read a YAML file synchronously and parse its content as JSON
  *
  * @param  {String} `filepath`
@@ -255,13 +256,13 @@ exports.readYAMLSync = function(filepath) {
  */
 
 exports.readYAML = function(filepath, options, cb) {
-  if (!cb) {
-    if (typeof options === 'function') {
-      cb = options;
-      options = {};
-    } else {
-      cb = function () {};
-    }
+  if (typeof options === 'function') {
+    cb = options;
+    options = {};
+  }
+
+  if (typeof cb !== 'function') {
+    throw new TypeError('readYAML expects callback to be a function');
   }
 
   var opts = utils.extend({normalize: true, encoding: 'utf8'}, options);
@@ -303,7 +304,10 @@ exports.readDataSync = function(filepath, options) {
     case 'yaml':
       reader = exports.readYAMLSync;
       break;
+    default: {
+      throw new Error('readDataSync does not support extension: ' + ext);
     }
+  }
   return reader(filepath, opts);
 };
 
@@ -338,7 +342,11 @@ exports.readData = function(filepath, options, cb) {
     case 'yaml':
       reader = exports.readYAML;
       break;
+    default: {
+      cb(new Error('readDataSync does not support extension: ' + ext));
+      return;
     }
+  }
   reader(filepath, cb);
 };
 
@@ -350,12 +358,13 @@ exports.readData = function(filepath, options, cb) {
  */
 
 var mkdir = exports.mkdir = function(dest, cb) {
-  var destpath = path.dirname(dest);
-  fs.exists(destpath, function (exist) {
+  var dir = path.dirname(dest);
+  fs.exists(dir, function (exist) {
     if (exist) {
       fs.mkdir(dest, cb);
     } else {
-      mkdir(destpath, function () {
+      mkdir(dir, function (err) {
+        if (err) return cb(err);
         fs.mkdir(dest, cb);
       });
     }
@@ -371,9 +380,9 @@ var mkdir = exports.mkdir = function(dest, cb) {
 
 var mkdirSync = exports.mkdirSync = function(dirpath, mode) {
   mode = mode || parseInt('0777', 8) & (~process.umask());
-  if (!fs.existsSync(dirpath)) {
+  if (!exists(dirpath)) {
     var parentDir = path.dirname(dirpath);
-    if (fs.existsSync(parentDir)) {
+    if (exists(parentDir)) {
       fs.mkdirSync(dirpath, mode);
     } else {
       mkdirSync(parentDir);
