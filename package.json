@@ -1,7 +1,7 @@
 {
   "name": "fs-utils",
   "description": "fs extras and utilities to extend the node.js file system module. Used in Assemble and many other projects.",
-  "version": "0.6.5",
+  "version": "0.7.0",
   "homepage": "https://github.com/assemble/fs-utils",
   "author": "Jon Schlinkert (https://github.com/assemble)",
   "repository": "assemble/fs-utils",
@@ -25,17 +25,23 @@
     "delete": "^0.2.1",
     "extend-shallow": "^2.0.1",
     "graceful-fs": "^4.1.2",
-    "is-absolute": "^0.2.2",
+    "is-absolute": "^0.2.3",
     "js-yaml": "^3.4.3",
-    "kind-of": "^2.0.1",
+    "kind-of": "^3.0.0",
     "lazy-cache": "^0.2.4",
     "matched": "^0.3.2",
-    "normalize-path": "^0.3.0",
-    "relative": "^0.1.6"
+    "normalize-path": "^2.0.1",
+    "read-data": "^0.3.0",
+    "read-yaml": "^1.0.0",
+    "relative": "^3.0.2",
+    "write": "^0.2.1",
+    "write-data": "^0.1.0",
+    "write-json": "^0.2.2",
+    "write-yaml": "^0.2.2"
   },
   "devDependencies": {
-    "mocha": "^2.3.3",
-    "should": "^4.0.4"
+    "mocha": "*",
+    "should": "*"
   },
   "keywords": [
     "file",
@@ -51,10 +57,12 @@
   ],
   "verb": {
     "related": {
-      "description": "",
       "list": [
-        "micromatch",
-        "is-glob"
+        "write-data",
+        "write-json",
+        "read-data",
+        "read-yaml",
+        "write-yaml"
       ]
     }
   }
