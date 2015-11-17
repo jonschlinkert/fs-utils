@@ -30,6 +30,7 @@ require('js-yaml', 'YAML');
 require('extend-shallow', 'extend');
 require('is-absolute', 'isAbs');
 require('normalize-path', 'normalize');
+require('write', 'writeFile');
 require('kind-of', 'typeOf');
 require('matched', 'glob');
 require('relative');

@@ -401,20 +401,7 @@ var mkdirSync = exports.mkdirSync = function(dirpath, mode) {
  */
 
 exports.writeFile = function(dest, content, cb) {
-  var destpath = path.dirname(dest);
-  fs.exists(destpath, function (exists) {
-    if (exists) {
-      fs.writeFile(dest, content, cb);
-    } else {
-      mkdir(destpath, function (err) {
-        if (err) {
-          cb(err);
-        } else {
-          fs.writeFile(dest, content, cb);
-        }
-      });
-    }
-  });
+  utils.writeFile.apply(utils.writeFile, arguments);
 };
 
 /**
@@ -428,13 +415,7 @@ exports.writeFile = function(dest, content, cb) {
  */
 
 exports.writeFileSync = function(dest, str, options) {
-  var opts = utils.extend({enc: 'utf8'}, options);
-  var dir = path.dirname(dest);
-
-  if (!exists(dir)) {
-    mkdirSync(dir);
-  }
-  fs.writeFileSync(dest, str, opts.enc);
+  utils.writeFile.sync.apply(utils.writeFile, arguments);
 };
 
 /**
@@ -527,13 +508,14 @@ exports.writeYAML = function(dest, str, options, cb) {
 exports.writeDataSync = function(dest, str, options) {
   var defaults = {ext: exports.ext(dest), indent: 2};
   var opts = utils.extend({}, defaults, options);
-  var writer = exports.writeJSONSync;
 
-  if (opts.ext[0] === '.') {
-    opts.ext = opts.ext.slice(1);
+  var ext = opts.ext;
+  if (ext[0] === '.') {
+    ext = ext.slice(1);
   }
 
-  switch (opts.ext) {
+  var writer = exports.writeJSONSync;
+  switch (ext) {
     case 'json':
       writer = exports.writeJSONSync;
       break;
@@ -541,7 +523,10 @@ exports.writeDataSync = function(dest, str, options) {
     case 'yaml':
       writer = exports.writeYAMLSync;
       break;
+    default: {
+      throw new Error('writeDataSync does not support file extension: ' + ext);
     }
+  }
   return writer(dest, str, opts);
 };
 
@@ -569,11 +554,11 @@ exports.writeData = function(dest, str, options, cb) {
   var writer = exports.writeJSON;
   var ext = opts.ext;
 
-  if (ext[0] === '.') {
+  if (ext.charAt(0) === '.') {
     ext = ext.slice(1);
   }
 
-  switch (opts.ext) {
+  switch (ext) {
     case 'json':
       writer = exports.writeJSON;
       break;
@@ -581,7 +566,10 @@ exports.writeData = function(dest, str, options, cb) {
     case 'yaml':
       writer = exports.writeYAML;
       break;
+    default: {
+      throw new Error('writeData does not support file extension: ' + ext);
     }
+  }
   writer(dest, str, options, cb);
 };
 
