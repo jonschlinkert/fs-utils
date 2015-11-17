@@ -91,12 +91,28 @@ var exists = exports.exists = function(paths) {
  * @api public
  */
 
-exports.isEmpty = function(fp) {
+exports.isEmptyFile = function(fp) {
   if (exists(fp) === false) {
     return false;
   }
   var str = exports.readFileSync(fp);
   return str.length > 0;
+};
+
+/**
+ * Return `true` if the file exists and is empty.
+ *
+ * @param  {String} `filepath`
+ * @return {Boolean}
+ * @api public
+ */
+
+exports.isEmptyDir = function(fp) {
+  if (exists(fp) === false) {
+    return false;
+  }
+  var files = fs.readdirSync(fp);
+  return files.length > 0;
 };
 
 /**
@@ -206,32 +222,32 @@ var readFile = exports.readFile = function(filepath, options, cb) {
 };
 
 /**
- * Read a file synchronously and parse contents as JSON.
- * marks.
+ * Read a YAML file asynchronously and parse its contents as JSON.
+ *
+ * @param  {String} `filepath`
+ * @return {Object} `options`
+ * @return {Function} `cb` Callback function
+ * @api public
+ */
+
+exports.readYAML = function(filepath, options, cb) {
+  return utils.readYaml.apply(utils.readYaml, arguments);
+};
+
+/**
+ * Read a YAML file synchronously and parse its contents as JSON
  *
  * @param  {String} `filepath`
  * @return {Object}
  * @api public
  */
 
-exports.readJSONSync = function(filepath, options) {
-  return JSON.parse(exports.readFileSync(filepath, options));
+exports.readYAMLSync = function(filepath, options) {
+  return utils.readYaml.sync.apply(utils.readYaml, arguments);
 };
 
 /**
- * Read a YAML file synchronously and parse its content as JSON
- *
- * @param  {String} `filepath`
- * @return {Object}
- * @api public
- */
-
-exports.readYAMLSync = function(filepath) {
-  return utils.YAML.load(exports.readFileSync(filepath));
-};
-
-/**
- * Read JSON file asynchronously and parse content as JSON
+ * Read JSON file asynchronously and parse contents as JSON
  *
  * @param  {String} `filepath`
  * @param  {Function} `callback`
@@ -248,67 +264,16 @@ exports.readJSON = function(filepath, cb) {
 };
 
 /**
- * Read a YAML file synchronously and parse its content as JSON
+ * Read a file synchronously and parse contents as JSON.
+ * marks.
  *
  * @param  {String} `filepath`
  * @return {Object}
  * @api public
  */
 
-exports.readYAML = function(filepath, options, cb) {
-  if (typeof options === 'function') {
-    cb = options;
-    options = {};
-  }
-
-  if (typeof cb !== 'function') {
-    throw new TypeError('readYAML expects callback to be a function');
-  }
-
-  var opts = utils.extend({normalize: true, encoding: 'utf8'}, options);
-
-  fs.readFile(filepath, opts.encoding, function (err, content) {
-    if (err) return cb(err);
-
-    if (opts.normalize && opts.encoding === 'utf8') {
-      content = exports.normalize(content);
-    }
-    cb(null, utils.YAML.load(content));
-  });
-};
-
-/**
- * Read JSON or utils.YAML. Determins the reader automatically
- * based on file extension.
- *
- * @param  {String} `filepath`
- * @param  {String} `options`
- * @return {String}
- * @api public
- */
-
-exports.readDataSync = function(filepath, options) {
-  var opts = options || {};
-  var ext = opts.lang || opts.parse || path.extname(filepath);
-  var reader = exports.readJSONSync;
-
-  if (ext[0] === '.') {
-    ext = ext.slice(1);
-  }
-
-  switch (ext) {
-    case 'json':
-      reader = exports.readJSONSync;
-      break;
-    case 'yml':
-    case 'yaml':
-      reader = exports.readYAMLSync;
-      break;
-    default: {
-      throw new Error('readDataSync does not support extension: ' + ext);
-    }
-  }
-  return reader(filepath, opts);
+exports.readJSONSync = function(filepath, options) {
+  return JSON.parse(exports.readFileSync(filepath, options));
 };
 
 /**
@@ -316,38 +281,28 @@ exports.readDataSync = function(filepath, options) {
  * based on file extension.
  *
  * @param  {String} `filepath`
- * @param  {String} `options`
+ * @param  {Object} `options`
+ * @param  {Function} `callback`
  * @return {String}
  * @api public
  */
 
 exports.readData = function(filepath, options, cb) {
-  if (typeof options === 'function') {
-    cb = options;
-    options = {};
-  }
-  var opts = utils.extend({}, options);
-  var ext = opts.parse || path.extname(filepath);
-  var reader = exports.readJSON;
+  return utils.readData.data.apply(utils.readData, arguments);
+};
 
-  if (ext[0] === '.') {
-    ext = ext.slice(1);
-  }
+/**
+ * Read JSON or utils.YAML. Determins the reader automatically
+ * based on file extension.
+ *
+ * @param  {String} `filepath`
+ * @param  {Object} `options`
+ * @return {String}
+ * @api public
+ */
 
-  switch (ext) {
-    case 'json':
-      reader = exports.readJSON;
-      break;
-    case 'yml':
-    case 'yaml':
-      reader = exports.readYAML;
-      break;
-    default: {
-      cb(new Error('readDataSync does not support extension: ' + ext));
-      return;
-    }
-  }
-  reader(filepath, cb);
+exports.readDataSync = function(filepath, options) {
+  return utils.readData.data.sync.apply(utils.readData, arguments);
 };
 
 /**
@@ -429,9 +384,7 @@ exports.writeFileSync = function(dest, str, options) {
  */
 
 exports.writeJSONSync = function(dest, str, options) {
-  var opts = utils.extend({indent: 2}, options);
-  str = JSON.stringify(str, null, opts.indent);
-  exports.writeFileSync(dest, str);
+  utils.writeJson.sync.apply(utils.writeJson, arguments);
 };
 
 /**
@@ -445,13 +398,7 @@ exports.writeJSONSync = function(dest, str, options) {
  */
 
 exports.writeJSON = function(dest, str, options, cb) {
-  if (typeof options === 'function') {
-    cb = options; options = {};
-  }
-
-  var indent = options && options.indent || 2;
-  var json = JSON.stringify(str, null, indent);
-  exports.writeFile(dest, json, cb);
+  utils.writeJson.apply(utils.writeJson, arguments);
 };
 
 /**
@@ -465,9 +412,7 @@ exports.writeJSON = function(dest, str, options, cb) {
  */
 
 exports.writeYAMLSync = function(dest, str, options) {
-  var indent = options && options.indent || 2;
-  var json = utils.YAML.dump(str, null, indent);
-  exports.writeFileSync(dest, json);
+  utils.writeYaml.sync.apply(utils.writeYaml, arguments);
 };
 
 /**
@@ -480,14 +425,8 @@ exports.writeYAMLSync = function(dest, str, options) {
  * @api public
  */
 
-exports.writeYAML = function(dest, str, options, cb) {
-  if (typeof options === 'function') {
-    cb = options; options = {};
-  }
-  var opts = utils.extend({indent: 2}, options);
-
-  str = utils.YAML.dump(str, null, opts.indent);
-  exports.writeFile(dest, str, cb);
+exports.writeYAML = function(dest, data, options, cb) {
+  utils.writeYaml.apply(utils.writeYaml, arguments);
 };
 
 /**
@@ -505,29 +444,8 @@ exports.writeYAML = function(dest, str, options, cb) {
  * @api public
  */
 
-exports.writeDataSync = function(dest, str, options) {
-  var defaults = {ext: exports.ext(dest), indent: 2};
-  var opts = utils.extend({}, defaults, options);
-
-  var ext = opts.ext;
-  if (ext[0] === '.') {
-    ext = ext.slice(1);
-  }
-
-  var writer = exports.writeJSONSync;
-  switch (ext) {
-    case 'json':
-      writer = exports.writeJSONSync;
-      break;
-    case 'yml':
-    case 'yaml':
-      writer = exports.writeYAMLSync;
-      break;
-    default: {
-      throw new Error('writeDataSync does not support file extension: ' + ext);
-    }
-  }
-  return writer(dest, str, opts);
+exports.writeDataSync = function(dest, data, options) {
+  utils.writeData.sync.apply(utils.writeData, arguments);
 };
 
 /**
@@ -536,41 +454,18 @@ exports.writeDataSync = function(dest, str, options) {
  * type is determined by the `dest` file extension.
  *
  * ```js
- * writeDataSync('foo.yml', {foo: "bar"});
+ * writeData('foo.yml', {foo: "bar"});
  * ```
  *
  * @param  {String} `dest`
- * @param  {String} `str`
+ * @param  {String} `data`
  * @param  {Options} `options`
+ * @param  {Function} `cb` Callback function
  * @api public
  */
 
-exports.writeData = function(dest, str, options, cb) {
-  if (typeof options === 'function') {
-    cb = options; options = {};
-  }
-  var defaults = {ext: exports.ext(dest), indent: 2};
-  var opts = utils.extend({}, defaults, options);
-  var writer = exports.writeJSON;
-  var ext = opts.ext;
-
-  if (ext.charAt(0) === '.') {
-    ext = ext.slice(1);
-  }
-
-  switch (ext) {
-    case 'json':
-      writer = exports.writeJSON;
-      break;
-    case 'yml':
-    case 'yaml':
-      writer = exports.writeYAML;
-      break;
-    default: {
-      throw new Error('writeData does not support file extension: ' + ext);
-    }
-  }
-  writer(dest, str, options, cb);
+exports.writeData = function(dest, data, options, cb) {
+  utils.writeData.apply(utils.writeData, arguments);
 };
 
 /**
@@ -626,7 +521,7 @@ exports.rmdir = function(dir, cb) {
  * as the last argument to use utils.async.
  *
  * @param  {String} `patterns` Glob patterns to use.
- * @param  {String} `options` Options for matched.
+ * @param  {Object} `options` Options for matched.
  * @param  {Function} `cb`
  * @api public
  */
@@ -663,7 +558,7 @@ exports.deleteAsync = function(patterns, opts, cb) {
       return;
     }
     utils.async.each(files, function (filepath, next) {
-      if (opts.cwd) {
+      if (opts.cwd && !exports.isAbsolute(filepath)) {
         filepath = path.resolve(opts.cwd, filepath);
       }
 
@@ -676,7 +571,7 @@ exports.deleteAsync = function(patterns, opts, cb) {
  * Synchronously delete folders and files.
  *
  * @param  {String} `patterns` Glob patterns to use.
- * @param  {String} `options` Options for matched.
+ * @param  {Object} `options` Options for matched.
  * @param  {Function} `cb`
  * @api private
  */

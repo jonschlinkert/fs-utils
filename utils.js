@@ -33,6 +33,11 @@ require('normalize-path', 'normalize');
 require('write', 'writeFile');
 require('kind-of', 'typeOf');
 require('matched', 'glob');
+require('read-data');
+require('read-yaml');
+require('write-json');
+require('write-yaml');
+require('write-data');
 require('relative');
 
 /**
