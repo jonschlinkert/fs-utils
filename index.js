@@ -476,8 +476,8 @@ exports.writeData = function(dest, data, options, cb) {
  * @api public
  */
 
-exports.copyFileSync = function(src, dest) {
-  exports.writeFileSync(dest, exports.readFileSync(src));
+exports.copyFileSync = function(src, dest, options) {
+  exports.writeFileSync(dest, exports.readFileSync(src, options), options);
 };
 
 /**
