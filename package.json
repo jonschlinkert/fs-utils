@@ -22,26 +22,26 @@
   },
   "dependencies": {
     "async": "^1.5.0",
-    "delete": "^0.2.1",
+    "delete": "^0.3.2",
     "extend-shallow": "^2.0.1",
-    "graceful-fs": "^4.1.2",
-    "is-absolute": "^0.2.3",
-    "js-yaml": "^3.4.3",
-    "kind-of": "^3.0.0",
-    "lazy-cache": "^0.2.4",
-    "matched": "^0.3.2",
+    "graceful-fs": "^4.1.5",
+    "is-absolute": "^0.2.5",
+    "js-yaml": "^3.6.1",
+    "kind-of": "^3.0.4",
+    "lazy-cache": "^2.0.1",
+    "matched": "^0.4.3",
     "normalize-path": "^2.0.1",
     "read-data": "^0.3.0",
     "read-yaml": "^1.0.0",
     "relative": "^3.0.2",
-    "write": "^0.2.1",
+    "write": "^0.3.1",
     "write-data": "^0.1.0",
     "write-json": "^0.2.2",
     "write-yaml": "^0.2.2"
   },
   "devDependencies": {
-    "mocha": "*",
-    "should": "*"
+    "mocha": "^3.0.1",
+    "should": "^10.0.0"
   },
   "keywords": [
     "file",
