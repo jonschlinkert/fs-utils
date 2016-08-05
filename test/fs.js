@@ -104,6 +104,20 @@ describe('fs', function() {
     file.del('test/actual/test.yaml');
   });
 
+  it('should copy a file', function() {
+    var contents = file.readFileSync('test/fixtures/test.txt');
+    file.copyFileSync('test/fixtures/test.txt', 'test/actual/test.txt');
+    file.readFileSync('test/actual/test.txt').should.eql(contents);
+    file.del('test/actual/test.txt');
+  });
+
+  it('should copy a binary file', function() {
+    var contents = file.readFileSync('test/fixtures/video-js.swf', {encoding: false});
+    file.copyFileSync('test/fixtures/video-js.swf', 'test/actual/video-js.swf', {encoding: false});
+    file.readFileSync('test/actual/video-js.swf', {encoding: false}).should.eql(contents);
+    file.del('test/actual/video-js.swf');
+  });
+
   describe('glob', function() {
     it('should return an array of files.', function() {
       var files = file.glob.sync('test/**/*.js');
