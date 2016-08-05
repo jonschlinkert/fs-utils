@@ -4,6 +4,7 @@
  * Module dependencies
  */
 
+var fs = require('fs');
 var utils = require('lazy-cache')(require);
 
 /**
