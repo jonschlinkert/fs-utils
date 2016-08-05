@@ -6,8 +6,7 @@
  */
 'use strict';
 
-var should = require('should');
-var path = require('path');
+require('should');
 var file = require('..');
 
 // Normalize slashes in some test results

@@ -61,7 +61,7 @@ exports.slashify = function(str, trailing) {
  * @api private
  */
 
-exports.normalize = function(str){
+exports.normalize = function(str) {
   if (EOL !== '\n') {
     str = str.replace(EOLre, '\n');
   }
@@ -199,7 +199,7 @@ exports.readFileSync = function(filepath, options) {
  * @api public
  */
 
-var readFile = exports.readFile = function(filepath, options, cb) {
+exports.readFile = function(filepath, options, cb) {
   if (typeof options === 'function') {
     cb = options;
     options = {};
@@ -211,7 +211,7 @@ var readFile = exports.readFile = function(filepath, options, cb) {
 
   var opts = utils.extend({normalize: true, encoding: 'utf8'}, options);
 
-  fs.readFile(filepath, opts.encoding, function (err, content) {
+  fs.readFile(filepath, opts.encoding, function(err, content) {
     if (err) return cb(err);
 
     if (opts.normalize && opts.encoding === 'utf8') {
@@ -314,11 +314,11 @@ exports.readDataSync = function(filepath, options) {
 
 var mkdir = exports.mkdir = function(dest, cb) {
   var dir = path.dirname(dest);
-  fs.exists(dir, function (exist) {
+  fs.exists(dir, function(exist) {
     if (exist) {
       fs.mkdir(dest, cb);
     } else {
-      mkdir(dir, function (err) {
+      mkdir(dir, function(err) {
         if (err) return cb(err);
         fs.mkdir(dest, cb);
       });
@@ -491,16 +491,16 @@ exports.copyFileSync = function(src, dest) {
 
 exports.rmdir = function(dir, cb) {
   if (typeof cb !== 'function') {
-    cb = function () {};
+    cb = function() {};
   }
 
-  fs.readdir(dir, function (err, files) {
+  fs.readdir(dir, function(err, files) {
     if (err) {
       return cb(err);
     }
-    utils.async.each(files, function (segment, next) {
+    utils.async.each(files, function(segment, next) {
       var dir = path.join(dir, segment);
-      fs.stat(dir, function (err, stats) {
+      fs.stat(dir, function(err, stats) {
         if (err) {
           return cb(err);
         }
@@ -510,7 +510,7 @@ exports.rmdir = function(dir, cb) {
           fs.unlink(dir, next);
         }
       });
-    }, function () {
+    }, function() {
       fs.rmdir(dir, cb);
     });
   });
@@ -552,12 +552,12 @@ exports.deleteAsync = function(patterns, opts, cb) {
     opts = {};
   }
 
-  utils.glob(patterns, opts, function (err, files) {
+  utils.glob(patterns, opts, function(err, files) {
     if (err) {
       cb(err);
       return;
     }
-    utils.async.each(files, function (filepath, next) {
+    utils.async.each(files, function(filepath, next) {
       if (opts.cwd && !exports.isAbsolute(filepath)) {
         filepath = path.resolve(opts.cwd, filepath);
       }
@@ -578,7 +578,7 @@ exports.deleteAsync = function(patterns, opts, cb) {
 
 exports.deleteSync = function(patterns, options) {
   var opts = utils.extend({cwd: process.cwd()}, options);
-  utils.glob.sync(patterns, opts).forEach(function (filepath) {
+  utils.glob.sync(patterns, opts).forEach(function(filepath) {
     if (opts.cwd) {
       filepath = path.resolve(opts.cwd, filepath);
     }
